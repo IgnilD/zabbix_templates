@@ -1,0 +1,1318 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+    - uuid: e960332b3f6c46a1956486d4f3f99fce
+      name: 'Templates/Server hardware'
+  templates:
+    - uuid: aac27b8a71eb4819bcd3f2d9e47f5b89
+      template: 'DELL PowerProtect DataDomain SNMP'
+      name: 'DELL PowerProtect DataDomain SNMP'
+      description: |
+        Template for DELL PowerProtect DataDomain 
+        
+        MIBs used:
+        DATA-DOMAIN-MIB
+        SNMPv2-MIB
+      groups:
+        - name: 'Templates/Server hardware'
+      items:
+        - uuid: 02fbe02eba144dbf80029296e9e2e4e3
+          name: 'DataDomain: File System Status Message'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.19746.1.3.1.4.0
+          key: dell.dd.fs.status.message
+          history: 7d
+          value_type: TEXT
+          trends: '0'
+          description: 'DATA-DOMAIN-MIB::fileSystemStatusMessage'
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: filesystem
+        - uuid: f5e84a34591d44d5aac1b39ef7311fd2
+          name: 'DataDomain: File System Status'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.19746.1.3.1.1.0
+          key: 'dell.dd.fs.status[fileSystemStatus]'
+          history: 7d
+          trends: '0'
+          description: 'DATA-DOMAIN-MIB::fileSystemStatus'
+          valuemap:
+            name: 'DATA-DOMAIN-MIB::fileSystemStatus'
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: filesystem
+          triggers:
+            - uuid: f16351ffbf7841c5813a6660d55ae149
+              expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.fs.status[fileSystemStatus])<>3'
+              name: 'File System Status is not in optimal state'
+              opdata: 'Current state: {ITEM.LASTVALUE1}'
+              priority: WARNING
+              description: 'Check File System'
+              manual_close: 'YES'
+              tags:
+                - tag: scope
+                  value: availability
+        - uuid: dad812a0413c476d90d137b65e274306
+          name: 'DataDomain: CIFS operations rate'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.19746.1.5.1.1.1.9.1
+          key: 'dell.dd.sys.cifs.ops[cifsOpsPerSecond]'
+          history: 7d
+          trends: '0'
+          units: ops
+          description: |
+            DATA-DOMAIN-MIB::cifsOpsPerSecond
+            Number of CIFS Operations performed per second.
+          tags:
+            - tag: component
+              value: system
+        - uuid: 40dadc8d9d75491db9972b413ea339ba
+          name: 'DataDomain: Cpu Avgerage Busy'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.19746.1.5.1.1.1.2.1
+          key: 'dell.dd.sys.cpu.avg.busy[cpuAvgPercentageBusy]'
+          history: 7d
+          trends: '0'
+          units: '%'
+          description: |
+            DATA-DOMAIN-MIB::cpuAvgPercentageBusy
+            CPU average percentage busy.
+          tags:
+            - tag: component
+              value: system
+        - uuid: 1bf6012a817d4cd4bffe6fa66971f608
+          name: 'DataDomain: Cpu Max Busy'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.19746.1.5.1.1.1.3.1
+          key: 'dell.dd.sys.cpu.max.busy[cpuMaxPercentageBusy]'
+          history: 7d
+          trends: '0'
+          units: '%'
+          description: |
+            DATA-DOMAIN-MIB::cpuMaxPercentageBusy
+            CPU max percentage busy.
+          tags:
+            - tag: component
+              value: system
+        - uuid: 90ee484570954b049abc46380236a121
+          name: 'DataDomain: Disk Busy rate'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.19746.1.5.1.1.1.12.1
+          key: 'dell.dd.sys.disk.busy[diskBusyPercentage]'
+          history: 7d
+          trends: '0'
+          units: '%'
+          description: |
+            DATA-DOMAIN-MIB::diskBusyPercentage
+            Percentage of Time Disks were busy.
+          tags:
+            - tag: component
+              value: system
+        - uuid: 8072ac44b56746758ac00a78f86bf87c
+          name: 'DataDomain: Disk Read rate'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.19746.1.5.1.1.1.10.1
+          key: 'dell.dd.sys.disk.read[diskReadKBytesPerSecond]'
+          history: 7d
+          trends: '0'
+          units: B/s
+          description: |
+            DATA-DOMAIN-MIB::diskReadKBytesPerSecond
+            Number of KBytes per second read from disk.
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - '1024'
+          tags:
+            - tag: component
+              value: system
+        - uuid: 5153f27b29914f118c6fe76fbbc249ac
+          name: 'DataDomain: Disk Write rate'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.19746.1.5.1.1.1.11.1
+          key: 'dell.dd.sys.disk.write[diskWriteKBytesPerSecond]'
+          history: 7d
+          trends: '0'
+          units: B/s
+          description: |
+            DATA-DOMAIN-MIB::diskWriteKBytesPerSecond
+            Number of KBytes per second read from disk.
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - '1024'
+          tags:
+            - tag: component
+              value: system
+        - uuid: 2d75466360534bf0949a9035ad37cfc8
+          name: 'DataDomain: Hardware Model'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.19746.1.13.1.4.0
+          key: 'dell.dd.sys.model[systemModelNumber]'
+          history: 7d
+          value_type: CHAR
+          trends: '0'
+          description: |
+            DATA-DOMAIN-MIB::systemModelNumber
+            Model Number of the System
+          inventory_link: MODEL
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: system
+        - uuid: c71f68f7fb1b4d6aa30963ec5b896b67
+          name: 'DataDomain: NFS operations rate'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.19746.1.5.1.1.1.4.1
+          key: 'dell.dd.sys.nfs.ops[nfsOpsPerSecond]'
+          history: 7d
+          trends: '0'
+          units: ops
+          description: |
+            DATA-DOMAIN-MIB::nfsOpsPerSecond
+            Number of NFS Operations performed per second.
+          tags:
+            - tag: component
+              value: system
+        - uuid: 6e2c1b5834304bf5a0774a32045b78ae
+          name: 'DataDomain: System Notes'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.19746.1.13.1.6.0
+          key: 'dell.dd.sys.notes[sysNotes]'
+          delay: 1h
+          history: 7d
+          value_type: TEXT
+          trends: '0'
+          description: |
+            DATA-DOMAIN-MIB::sysNotes
+            Customer defined notes associated with this DD System
+          inventory_link: NOTES
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: system
+        - uuid: 7437dc18cd4d4e3f878763a00ccd4c86
+          name: 'DataDomain: Serial Number'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.19746.1.13.1.1.0
+          key: 'dell.dd.sys.serialnumber[systemSerialNumber]'
+          history: 7d
+          value_type: CHAR
+          trends: '0'
+          description: |
+            DATA-DOMAIN-MIB::systemSerialNumber
+            Serial Number of the System
+          inventory_link: SERIALNO_A
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: system
+          triggers:
+            - uuid: 9ecdb0d42d394774bb394c6ccc78d772
+              expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.sys.serialnumber[systemSerialNumber],#1)<>last(/DELL PowerProtect DataDomain SNMP/dell.dd.sys.serialnumber[systemSerialNumber],#2) and length(last(/DELL PowerProtect DataDomain SNMP/dell.dd.sys.serialnumber[systemSerialNumber]))>0'
+              name: 'DataDomain: Device has been replaced'
+              event_name: 'DataDomain: Device has been replaced (new serial number received)'
+              priority: INFO
+              description: 'Device serial number has changed. Ack to close'
+              manual_close: 'YES'
+              tags:
+                - tag: scope
+                  value: notice
+        - uuid: f5fd82c7de53442887665ae445f11e68
+          name: 'DataDomain: System Current Time'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.19746.1.13.1.2.0
+          key: 'dell.dd.sys.time[systemCurrentTime]'
+          history: 7d
+          value_type: CHAR
+          trends: '0'
+          description: |
+            DATA-DOMAIN-MIB::systemCurrentTime
+            DDR system's current time
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: system
+        - uuid: 6e1c5db7fb46416c90e239d8c3c7f13f
+          name: 'DataDomain: System Version'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.4.1.19746.1.13.1.3.0
+          key: 'dell.dd.sys.version[systemVersion]'
+          delay: 1h
+          history: 2w
+          value_type: CHAR
+          trends: '0'
+          description: |
+            DATA-DOMAIN-MIB::systemVersion
+            DD version of the system
+          inventory_link: OS
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: system
+          triggers:
+            - uuid: 9eabd079ef38436db109d2a8a4ee597f
+              expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.sys.version[systemVersion],#1)<>last(/DELL PowerProtect DataDomain SNMP/dell.dd.sys.version[systemVersion],#2) and length(last(/DELL PowerProtect DataDomain SNMP/dell.dd.sys.version[systemVersion]))>0'
+              name: 'DataDomain: System Version has changed'
+              opdata: 'Current value: {ITEM.LASTVALUE1}'
+              priority: INFO
+              description: 'System version has changed. Ack to close.'
+              manual_close: 'YES'
+              tags:
+                - tag: scope
+                  value: notice
+        - uuid: 6cae609e277043d1bbed462d752f13b9
+          name: 'DataDomain: Uptime (hardware)'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.25.1.1.0
+          key: 'dell.dd.system.hw.uptime[hrSystemUptime.0]'
+          delay: 30s
+          trends: '0'
+          units: uptime
+          description: |
+            MIB: HOST-RESOURCES-MIB
+            The amount of time since this host was last initialized. Note that this is different from sysUpTime in the SNMPv2-MIB [RFC1907] because sysUpTime is the uptime of the network management portion of the system.
+          preprocessing:
+            - type: CHECK_NOT_SUPPORTED
+              parameters:
+                - '-1'
+              error_handler: CUSTOM_VALUE
+              error_handler_params: '0'
+            - type: MULTIPLIER
+              parameters:
+                - '0.01'
+          tags:
+            - tag: component
+              value: system
+        - uuid: 8a64574587c1494f966ee6ab52b70b35
+          name: 'DataDomain: Uptime (network)'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.3.0
+          key: 'dell.dd.system.net.uptime[sysUpTime.0]'
+          delay: 30s
+          trends: '0'
+          units: uptime
+          description: |
+            MIB: SNMPv2-MIB
+            Time (in hundredths of a second) since the network management portion of the system was last re-initialized.
+          preprocessing:
+            - type: MULTIPLIER
+              parameters:
+                - '0.01'
+          tags:
+            - tag: component
+              value: system
+        - uuid: 5a8379c445e242478a9162e2651638c0
+          name: 'DataDomain: SNMP traps (fallback)'
+          type: SNMP_TRAP
+          key: snmptrap.fallback
+          delay: '0'
+          history: 2w
+          value_type: LOG
+          trends: '0'
+          description: 'Item is used to collect all SNMP traps unmatched by other snmptrap items'
+          logtimefmt: 'hh:mm:sszyyyy/MM/dd'
+          tags:
+            - tag: Application
+              value: General
+        - uuid: 7aa60ef57ef6424a9fdf0f0586e203ac
+          name: 'DataDomain: System contact details'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.4.0
+          key: 'system.contact[sysContact.0]'
+          delay: 1h
+          history: 2w
+          value_type: CHAR
+          trends: '0'
+          description: |
+            MIB: SNMPv2-MIB
+            The textual identification of the contact person for this managed node, together with information on how to contact this person.  If no contact information is known, the value is the zero-length string.
+          inventory_link: CONTACT
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: Application
+              value: General
+        - uuid: f39c14dab7b34def8445244a5d13a030
+          name: 'DataDomain: System location'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.6.0
+          key: 'system.location[sysLocation.0]'
+          delay: 1h
+          history: 2w
+          value_type: CHAR
+          trends: '0'
+          description: |
+            MIB: SNMPv2-MIB
+            The physical location of this node (e.g., `telephone closet, 3rd floor').  If the location is unknown, the value is the zero-length string.
+          inventory_link: LOCATION
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1h
+          tags:
+            - tag: Application
+              value: General
+        - uuid: 423554dc5dfe433d9fd2c925ffe288c5
+          name: 'DataDomain: System name'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.5.0
+          key: system.name
+          delay: 1h
+          history: 2w
+          value_type: CHAR
+          trends: '0'
+          description: |
+            MIB: SNMPv2-MIB
+            An administratively-assigned name for this managed node.By convention, this is the node's fully-qualified domain name.  If the name is unknown, the value is the zero-length string.
+          inventory_link: NAME
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1h
+          tags:
+            - tag: Application
+              value: General
+          triggers:
+            - uuid: 51e8bae450c24c7fa2a154a37dab8837
+              expression: 'last(/DELL PowerProtect DataDomain SNMP/system.name,#1)<>last(/DELL PowerProtect DataDomain SNMP/system.name,#2) and length(last(/DELL PowerProtect DataDomain SNMP/system.name))>0'
+              name: 'DataDomain: System name has changed'
+              event_name: 'DataDomain: System name has changed (new name: {ITEM.VALUE})'
+              priority: INFO
+              description: 'The name of the system has changed. Acknowledge to close the problem manually.'
+              manual_close: 'YES'
+              tags:
+                - tag: scope
+                  value: notice
+                - tag: scope
+                  value: security
+        - uuid: f532c9305e124aa7bc6b5c714b900fc1
+          name: 'DataDomain: System object ID'
+          type: SNMP_AGENT
+          snmp_oid: 1.3.6.1.2.1.1.2.0
+          key: 'system.objectid[sysObjectID.0]'
+          delay: 15m
+          history: 2w
+          value_type: CHAR
+          trends: '0'
+          description: |
+            MIB: SNMPv2-MIB
+            The vendor's authoritative identification of the network management subsystem contained in the entity.  This value is allocated within the SMI enterprises subtree (1.3.6.1.4.1) and provides an easy and unambiguous means for determining`what kind of box' is being managed.  For example, if vendor`Flintstones, Inc.' was assigned the subtree1.3.6.1.4.1.4242, it could assign the identifier 1.3.6.1.4.1.4242.1.1 to its `Fred Router'.
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1h
+          tags:
+            - tag: Application
+              value: General
+        - uuid: c72cf8d5496d47a2b6c18c051879659e
+          name: 'DataDomain: SNMP agent availability'
+          type: INTERNAL
+          key: 'zabbix[host,snmp,available]'
+          history: 7d
+          tags:
+            - tag: Application
+              value: Status
+          triggers:
+            - uuid: effe26dc43144898a180dcd82b664699
+              expression: 'max(/DELL PowerProtect DataDomain SNMP/zabbix[host,snmp,available],{$SNMP.TIMEOUT})=0'
+              name: 'DataDomain: No SNMP data collection'
+              opdata: 'Current state: {ITEM.LASTVALUE1}'
+              priority: WARNING
+              description: 'SNMP is not available for polling. Please check device connectivity and SNMP settings.'
+              tags:
+                - tag: scope
+                  value: availability
+      discovery_rules:
+        - uuid: 00f3b6076a05486fb311027166282cfd
+          name: 'Disk discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#DISK_ENCLOSUREID},1.3.6.1.4.1.19746.1.6.1.1.1.1,{#DISK_INDEX},1.3.6.1.4.1.19746.1.6.1.1.1.2]'
+          key: disk.discovery
+          delay: 1h
+          description: |
+            DATA-DOMAIN-MIB::diskPropEnclosureID
+            DATA-DOMAIN-MIB::diskPropIndex
+          item_prototypes:
+            - uuid: 040769ab507d427188fa8b18eb5b0d73
+              name: 'DataDomain: Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} capacity'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.6.1.1.1.7.{#SNMPINDEX}'
+              key: 'dell.dd.disk.capacity[diskCapacity.{#SNMPINDEX}]'
+              delay: 1h
+              history: 7d
+              value_type: CHAR
+              trends: '0'
+              description: |
+                DATA-DOMAIN-MIB::diskCapacity
+                Capacity of the disk.
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
+              tags:
+                - tag: component
+                  value: disk
+                - tag: disk_enclosure
+                  value: '{#DISK_ENCLOSUREID}'
+                - tag: enclosure_id
+                  value: '{#DISK_ENCLOSUREID}'
+            - uuid: 8e24f442190a4af5b30d9efe241dedcd
+              name: 'DataDomain: Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} Firmware Version'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.6.1.1.1.5.{#SNMPINDEX}'
+              key: 'dell.dd.disk.fversion[diskFirmwareVersion.{#SNMPINDEX}]'
+              delay: 1h
+              history: 7d
+              value_type: CHAR
+              trends: '0'
+              description: |
+                DATA-DOMAIN-MIB::diskFirmwareVersion
+                Firmware version of the disk.
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
+              tags:
+                - tag: component
+                  value: disk
+                - tag: disk_enclosure
+                  value: '{#DISK_ENCLOSUREID}'
+                - tag: enclosure_id
+                  value: '{#DISK_ENCLOSUREID}'
+            - uuid: 1dbc663d398047dea76d8913f2f0cdc7
+              name: 'DataDomain: Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} model'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.6.1.1.1.4.{#SNMPINDEX}'
+              key: 'dell.dd.disk.model[diskModel.{#SNMPINDEX}]'
+              delay: 1h
+              history: 7d
+              value_type: CHAR
+              trends: '0'
+              description: |
+                DATA-DOMAIN-MIB::diskModel
+                Manufacture and model of the disk.
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
+              tags:
+                - tag: component
+                  value: disk
+                - tag: disk_enclosure
+                  value: '{#DISK_ENCLOSUREID}'
+                - tag: enclosure_id
+                  value: '{#DISK_ENCLOSUREID}'
+            - uuid: 2e922553f0494b62815720eb9a99571d
+              name: 'DataDomain: Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} Serial Number'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.6.1.1.1.6.{#SNMPINDEX}'
+              key: 'dell.dd.disk.sn[diskSerialNumber.{#SNMPINDEX}]'
+              delay: 1h
+              history: 7d
+              value_type: CHAR
+              trends: '0'
+              description: |
+                DATA-DOMAIN-MIB::diskSerialNumber
+                Serial Number of the disk.
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
+              tags:
+                - tag: component
+                  value: disk
+                - tag: disk_enclosure
+                  value: '{#DISK_ENCLOSUREID}'
+                - tag: enclosure_id
+                  value: '{#DISK_ENCLOSUREID}'
+            - uuid: cc877e4697964fa2ade48a275e270566
+              name: 'DataDomain: Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} state'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.6.1.1.1.8.{#SNMPINDEX}'
+              key: 'dell.dd.disk.state[diskPropState.{#SNMPINDEX}]'
+              history: 7d
+              trends: '0'
+              description: |
+                DATA-DOMAIN-MIB::diskPropState
+                Current State of the disk
+              valuemap:
+                name: 'DATA-DOMAIN-MIB::diskPropState'
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
+              tags:
+                - tag: component
+                  value: disk
+                - tag: disk_enclosure
+                  value: '{#DISK_ENCLOSUREID}'
+                - tag: enclosure_id
+                  value: '{#DISK_ENCLOSUREID}'
+              trigger_prototypes:
+                - uuid: 29d1de4c324d4cd8bfb1dcf63cf68011
+                  expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.disk.state[diskPropState.{#SNMPINDEX}])={$DISK.STATUS.CRIT:"absent"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.disk.state[diskPropState.{#SNMPINDEX}])={$DISK.STATUS.CRIT:"failed"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.disk.state[diskPropState.{#SNMPINDEX}])={$DISK.STATUS.CRIT:"unknown"}'
+                  name: 'Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} is in critical state'
+                  opdata: 'Current state: {ITEM.LASTVALUE1}'
+                  priority: AVERAGE
+                  description: 'Please check the disk state.'
+                  manual_close: 'YES'
+                  tags:
+                    - tag: scope
+                      value: availability
+                - uuid: c550f9fc63b44f918300450c3a363607
+                  expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.disk.state[diskPropState.{#SNMPINDEX}])={$DISK.STATUS.INFO:"copyReconstruction"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.disk.state[diskPropState.{#SNMPINDEX}])={$DISK.STATUS.INFO:"raidReconstruction"}'
+                  name: 'Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} make reconstruction'
+                  opdata: 'Current state: {ITEM.LASTVALUE1}'
+                  priority: INFO
+                  description: 'Disk change make reconstruction.'
+                  manual_close: 'YES'
+                  tags:
+                    - tag: scope
+                      value: notify
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 6h
+        - uuid: ad8b79bc8b0043cf9bf258ef4684251b
+          name: 'Enclosure Discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#ENCLOSURE_NR},1.3.6.1.4.1.19746.1.17.1.1.1.2]'
+          key: enclosure.discovery
+          delay: 1h
+          description: 'DATA-DOMAIN-MIB::enclosureListNum'
+          item_prototypes:
+            - uuid: 8e26706ae54d4fb8bb9be5796a23c4c5
+              name: 'DataDomain: Enclosure {#ENCLOSURE_NR} capacity'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.17.1.1.1.7.{#SNMPINDEX}'
+              key: 'dell.dd.enclosure.capacity[enclosureListCapacity.{#SNMPINDEX}]'
+              delay: 1d
+              history: 7d
+              value_type: CHAR
+              trends: '0'
+              description: 'DATA-DOMAIN-MIB::enclosureListCapacity'
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 1w
+              tags:
+                - tag: component
+                  value: enclosure
+                - tag: enclosure_id
+                  value: '{#ENCLOSURE_NR}'
+            - uuid: 7918d87efa854705b46d1bf4dbdf6dcb
+              name: 'DataDomain: Enclosure {#ENCLOSURE_NR} model'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.17.1.1.1.3.{#SNMPINDEX}'
+              key: 'dell.dd.enclosure.model[enclosureListModel.{#SNMPINDEX}]'
+              delay: 1d
+              history: 7d
+              value_type: CHAR
+              trends: '0'
+              description: 'DATA-DOMAIN-MIB::enclosureListModel'
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 1w
+              tags:
+                - tag: component
+                  value: enclosure
+                - tag: enclosure_id
+                  value: '{#ENCLOSURE_NR}'
+            - uuid: e8cf9efb031242a98d806b17c1794183
+              name: 'DataDomain: Enclosure {#ENCLOSURE_NR} Serial Number'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.17.1.1.1.4.{#SNMPINDEX}'
+              key: 'dell.dd.enclosure.sn[enclosureListSerialNum.{#SNMPINDEX}]'
+              delay: 1d
+              history: 7d
+              value_type: CHAR
+              trends: '0'
+              description: 'DATA-DOMAIN-MIB::enclosureListSerialNum'
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 1w
+              tags:
+                - tag: component
+                  value: enclosure
+                - tag: enclosure_id
+                  value: '{#ENCLOSURE_NR}'
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 6h
+        - uuid: 56649815c1e8487288472e35401699ac
+          name: 'FAN discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#FAN_ENCLOSUREID},1.3.6.1.4.1.19746.1.1.3.1.1.1.1,{#FAN_DESCR},1.3.6.1.4.1.19746.1.1.3.1.1.1.4]'
+          key: fan.discovery
+          delay: 1h
+          description: |
+            DATA-DOMAIN-MIB::fanEnclosureID
+            DATA-DOMAIN-MIB::fanDescription
+          item_prototypes:
+            - uuid: d8db27d23ca548fa88ebc72d5e60e0c0
+              name: 'DataDomain: {#FAN_DESCR} of Enclosure {#FAN_ENCLOSUREID} Speed Level'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.1.3.1.1.1.5.{#SNMPINDEX}'
+              key: 'dell.dd.fan.level[fanLevel.{#SNMPINDEX}]'
+              trends: '0'
+              description: 'MIB: DATA-DOMAIN-MIB::fanLevel'
+              valuemap:
+                name: 'DATA-DOMAIN-MIB::fanLevel'
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
+              tags:
+                - tag: component
+                  value: fan
+                - tag: enclosure_id
+                  value: '{#FAN_ENCLOSUREID}'
+                - tag: fan_enclosure
+                  value: '{#FAN_ENCLOSUREID}'
+            - uuid: 0038f78eadac4b488a649fda31731962
+              name: 'DataDomain: {#FAN_DESCR} of Enclosure {#FAN_ENCLOSUREID} Status'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.1.3.1.1.1.6.{#SNMPINDEX}'
+              key: 'dell.dd.fan.status[fanStatus.{#SNMPINDEX}]'
+              trends: '0'
+              description: |
+                MIB: DATA-DOMAIN-MIB::fanStatus
+                This attribute defines the probe status of the cooling device.
+              valuemap:
+                name: 'DATA-DOMAIN-MIB::fanStatus'
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
+              tags:
+                - tag: component
+                  value: fan
+                - tag: enclosure_id
+                  value: '{#FAN_ENCLOSUREID}'
+                - tag: fan_enclosure
+                  value: '{#FAN_ENCLOSUREID}'
+              trigger_prototypes:
+                - uuid: 4b81266469dd4b61aaa91ac1d00b92d6
+                  expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.fan.status[fanStatus.{#SNMPINDEX}])={$FAN.STATUS.CRIT:"fail"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.fan.status[fanStatus.{#SNMPINDEX}])={$FAN.STATUS.CRIT:"notfound"}'
+                  name: '{#FAN_DESCR} of Enclosure {#FAN_ENCLOSUREID} is in critical state'
+                  opdata: 'Current state: {ITEM.LASTVALUE1}'
+                  priority: AVERAGE
+                  description: 'Please check the fan unit.'
+                  manual_close: 'YES'
+                  tags:
+                    - tag: scope
+                      value: availability
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 6h
+        - uuid: 54c3a688e84646ff9d2e3befc4684586
+          name: 'FS discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#FS_INDEX},1.3.6.1.4.1.19746.1.3.2.1.1.2,{#FS_NAME},1.3.6.1.4.1.19746.1.3.2.1.1.3,{#FS_TIER},1.3.6.1.4.1.19746.1.3.2.1.1.9]'
+          key: fs.discovery
+          delay: 1h
+          description: |
+            DATA-DOMAIN-MIB::fileSystemResourceTrapIndex
+            DATA-DOMAIN-MIB::fileSystemResourceName
+            DATA-DOMAIN-MIB::fileSystemResourceTier
+          item_prototypes:
+            - uuid: 11fcd2f07a8d43a28e10746c7fc7f78b
+              name: 'DataDomain: {#FS_NAME} of {#FS_TIER} space available'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.3.2.1.1.6.{#SNMPINDEX}'
+              key: 'dell.dd.fs.space.avail[fileSystemSpaceAvail.{#SNMPINDEX}]'
+              history: 7d
+              trends: '0'
+              units: B
+              description: 'MIB: DATA-DOMAIN-MIB::fileSystemSpaceAvail'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '1073741824'
+              tags:
+                - tag: component
+                  value: filesystem
+                - tag: filesystem_name
+                  value: '{#FS_NAME}'
+                - tag: filesystem_tier
+                  value: '{#FS_TIER}'
+            - uuid: a34019e28d69483fb503bab0b4e068d2
+              name: 'DataDomain: {#FS_NAME} of {#FS_TIER} space cleanable'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.3.2.1.1.8.{#SNMPINDEX}'
+              key: 'dell.dd.fs.space.cleanable[fileSystemSpaceCleanable.{#SNMPINDEX}]'
+              history: 7d
+              trends: '0'
+              units: B
+              description: 'MIB: DATA-DOMAIN-MIB::fileSystemSpaceCleanable'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '1073741824'
+              tags:
+                - tag: component
+                  value: filesystem
+                - tag: filesystem_name
+                  value: '{#FS_NAME}'
+                - tag: filesystem_tier
+                  value: '{#FS_TIER}'
+            - uuid: 138e1d80f3f5406aa8d57ab4a48b03b9
+              name: 'DataDomain: {#FS_NAME} of {#FS_TIER} space size'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.3.2.1.1.4.{#SNMPINDEX}'
+              key: 'dell.dd.fs.space.size[fileSystemSpaceSize.{#SNMPINDEX}]'
+              history: 7d
+              trends: '0'
+              units: B
+              description: 'MIB: DATA-DOMAIN-MIB::fileSystemSpaceSize'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '1073741824'
+              tags:
+                - tag: component
+                  value: filesystem
+                - tag: filesystem_name
+                  value: '{#FS_NAME}'
+                - tag: filesystem_tier
+                  value: '{#FS_TIER}'
+            - uuid: efb4a6ae2d4d4b31b30ea4d993ee8318
+              name: 'DataDomain: {#FS_NAME} of {#FS_TIER} space used in %'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.3.2.1.1.7.{#SNMPINDEX}'
+              key: 'dell.dd.fs.space.used.perc[fileSystemPercentUsed.{#SNMPINDEX}]'
+              history: 7d
+              trends: '0'
+              units: '%'
+              description: 'MIB: DATA-DOMAIN-MIB::fileSystemPercentUsed'
+              tags:
+                - tag: component
+                  value: filesystem
+                - tag: filesystem_name
+                  value: '{#FS_NAME}'
+                - tag: filesystem_tier
+                  value: '{#FS_TIER}'
+              trigger_prototypes:
+                - uuid: 4458cb47cd4e4302a215da111577c3e2
+                  expression: 'max(/DELL PowerProtect DataDomain SNMP/dell.dd.fs.space.used.perc[fileSystemPercentUsed.{#SNMPINDEX}],{$FS.SPACE.TIME})>{$FS.SPACE.WARN}'
+                  name: 'PowerProtect DataDomain: {#FS_NAME} of {#FS_TIER} Tier space is low'
+                  opdata: 'Current value: {ITEM.LASTVALUE1}'
+                  priority: WARNING
+                  manual_close: 'YES'
+                  dependencies:
+                    - name: 'PowerProtect DataDomain: {#FS_NAME} of {#FS_TIER} Tier space is too low'
+                      expression: 'max(/DELL PowerProtect DataDomain SNMP/dell.dd.fs.space.used.perc[fileSystemPercentUsed.{#SNMPINDEX}],{$FS.SPACE.TIME})>{$FS.SPACE.CRIT}'
+                  tags:
+                    - tag: scope
+                      value: availability
+                - uuid: 8c06d4a9f6e742c8beb2665663a472a1
+                  expression: 'max(/DELL PowerProtect DataDomain SNMP/dell.dd.fs.space.used.perc[fileSystemPercentUsed.{#SNMPINDEX}],{$FS.SPACE.TIME})>{$FS.SPACE.CRIT}'
+                  name: 'PowerProtect DataDomain: {#FS_NAME} of {#FS_TIER} Tier space is too low'
+                  opdata: 'Current value: {ITEM.LASTVALUE1}'
+                  priority: HIGH
+                  manual_close: 'YES'
+                  tags:
+                    - tag: scope
+                      value: availability
+            - uuid: 9afba0dcba0843de836f176428664089
+              name: 'DataDomain: {#FS_NAME} of {#FS_TIER} space used'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.3.2.1.1.5.{#SNMPINDEX}'
+              key: 'dell.dd.fs.space.used[fileSystemSpaceUsed.{#SNMPINDEX}]'
+              history: 7d
+              trends: '0'
+              units: B
+              description: 'MIB: DATA-DOMAIN-MIB::fileSystemSpaceUsed'
+              preprocessing:
+                - type: MULTIPLIER
+                  parameters:
+                    - '1073741824'
+              tags:
+                - tag: component
+                  value: filesystem
+                - tag: filesystem_name
+                  value: '{#FS_NAME}'
+                - tag: filesystem_tier
+                  value: '{#FS_TIER}'
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 6h
+        - uuid: 78d4668d16a94948add98a3d8bb0550a
+          name: 'NVRAM BBU Discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#BBU_INDEX},1.3.6.1.4.1.19746.1.2.3.1.1.2]'
+          key: nvram.bbu.discovery
+          delay: 1h
+          description: 'DATA-DOMAIN-MIB::nvramBatteryIndex'
+          item_prototypes:
+            - uuid: e80cd0718fb54046835f36bbec44f56c
+              name: 'DataDomain: Battery Unit {#BBU_INDEX} Charge'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.2.3.1.1.4.{#SNMPINDEX}'
+              key: 'dell.dd.nvram.bbu.charge[nvramBatteryCharge.{#SNMPINDEX}]'
+              trends: '0'
+              units: '%'
+              description: 'DATA-DOMAIN-MIB::nvramBatteryCharge'
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
+              tags:
+                - tag: battery_id
+                  value: '{#BBU_INDEX}'
+                - tag: component
+                  value: bbu
+                - tag: component
+                  value: nvram
+              trigger_prototypes:
+                - uuid: f74ac7c342d442c7835eb12a3008f8dd
+                  expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.bbu.charge[nvramBatteryCharge.{#SNMPINDEX}])<{$NVRAM.BATTERY.CHARGE.WARN}'
+                  name: 'Battery Unit {#BBU_INDEX} have low charge'
+                  priority: WARNING
+                  manual_close: 'YES'
+                  tags:
+                    - tag: scope
+                      value: availability
+            - uuid: e00c9801ae754dd6ad02d436efabc1a9
+              name: 'DataDomain: Battery Unit {#BBU_INDEX} Status'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.2.3.1.1.3.{#SNMPINDEX}'
+              key: 'dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}]'
+              trends: '0'
+              description: 'DATA-DOMAIN-MIB::nvramBatteryStatus'
+              valuemap:
+                name: 'DATA-DOMAIN-MIB::nvramBatteryStatus'
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
+              tags:
+                - tag: battery_id
+                  value: '{#BBU_INDEX}'
+                - tag: component
+                  value: bbu
+                - tag: component
+                  value: nvram
+              trigger_prototypes:
+                - uuid: 0f5799510882401b81bb815ec5f02e0f
+                  expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}])={$NVRAM.BATTERY.STATUS.CRIT}'
+                  name: 'Battery Unit {#BBU_INDEX} is in critical state'
+                  opdata: 'Current state: {ITEM.LASTVALUE1}'
+                  priority: AVERAGE
+                  description: 'Please check the device for faults.'
+                  manual_close: 'YES'
+                  tags:
+                    - tag: scope
+                      value: availability
+                - uuid: 9e9f2d51d0ef4e8c9544ca3a73cdb4d4
+                  expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}])={$NVRAM.BATTERY.STATUS.WARN:"disabled"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}])={$NVRAM.BATTERY.STATUS.WARN:"softdisabled"}'
+                  name: 'Battery Unit {#BBU_INDEX}  is in warning state'
+                  opdata: 'Current state: {ITEM.LASTVALUE1}'
+                  priority: WARNING
+                  description: 'Please check the device for faults.'
+                  manual_close: 'YES'
+                  dependencies:
+                    - name: 'Battery Unit {#BBU_INDEX} is in critical state'
+                      expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}])={$NVRAM.BATTERY.STATUS.CRIT}'
+                  tags:
+                    - tag: scope
+                      value: availability
+                - uuid: d355667dcb2140c1bf148bd6be12e56a
+                  expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}])<>{$NVRAM.BATTERY.STATUS.OK}'
+                  name: 'Battery Unit {#BBU_INDEX} is not in optimal state'
+                  opdata: 'Current state: {ITEM.LASTVALUE1}'
+                  priority: WARNING
+                  description: 'Please check the device for faults.'
+                  manual_close: 'YES'
+                  dependencies:
+                    - name: 'Battery Unit {#BBU_INDEX} is in critical state'
+                      expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}])={$NVRAM.BATTERY.STATUS.CRIT}'
+                    - name: 'Battery Unit {#BBU_INDEX}  is in warning state'
+                      expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}])={$NVRAM.BATTERY.STATUS.WARN:"disabled"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}])={$NVRAM.BATTERY.STATUS.WARN:"softdisabled"}'
+                  tags:
+                    - tag: scope
+                      value: availability
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 6h
+        - uuid: bf0bb7fb5241454cb1076e94bb3e0dcc
+          name: 'NVRAM Discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#NVRAM_INDEX},1.3.6.1.4.1.19746.1.2.1.1.1.1]'
+          key: nvram.discovery
+          delay: 1h
+          description: 'DATA-DOMAIN-MIB::nvramPropertiesIndex'
+          item_prototypes:
+            - uuid: 9e3bfa4445bd4ecbaeee7ec35c8befeb
+              name: 'DataDomain: NVRAM {#NVRAM_INDEX} total memory'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.2.1.1.1.4.{#SNMPINDEX}'
+              key: 'dell.dd.nvram.HCMemorySize[nvramHCMemorySize.{#SNMPINDEX}]'
+              trends: '0'
+              units: B
+              description: 'DATA-DOMAIN-MIB::nvramHCMemorySize'
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
+              tags:
+                - tag: component
+                  value: nvram
+                - tag: nvram_id
+                  value: '{#NVRAM_INDEX}'
+            - uuid: d56a6bb113b142659232e95cc113a862
+              name: 'DataDomain: NVRAM {#NVRAM_INDEX} Memory Errors'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.2.2.1.1.3.{#SNMPINDEX}'
+              key: 'dell.dd.nvram.MemoryErrorCount[nvramMemoryErrorCount.{#SNMPINDEX}]'
+              trends: '0'
+              description: 'DATA-DOMAIN-MIB::nvramMemoryErrorCount'
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
+              tags:
+                - tag: component
+                  value: nvram
+                - tag: nvram_id
+                  value: '{#NVRAM_INDEX}'
+              trigger_prototypes:
+                - uuid: 0e4c94c5c5424fe69b755577362e1c11
+                  expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.MemoryErrorCount[nvramMemoryErrorCount.{#SNMPINDEX}])<>0'
+                  name: 'Memory Error on NVRAM {#NVRAM_INDEX}'
+                  opdata: 'Errors: {ITEM.LASTVALUE1}'
+                  priority: AVERAGE
+                  description: 'Please check NVRAM'
+                  manual_close: 'YES'
+                  tags:
+                    - tag: scope
+                      value: availability
+            - uuid: 70570b326a654762b251846167171f9e
+              name: 'DataDomain: NVRAM {#NVRAM_INDEX} PCI Errors'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.2.2.1.1.2.{#SNMPINDEX}'
+              key: 'dell.dd.nvram.PCIErrorCount[nvramPCIErrorCount.{#SNMPINDEX}]'
+              trends: '0'
+              description: 'DATA-DOMAIN-MIB::nvramPCIErrorCount'
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
+              tags:
+                - tag: component
+                  value: nvram
+                - tag: nvram_id
+                  value: '{#NVRAM_INDEX}'
+              trigger_prototypes:
+                - uuid: f6b613e61b9d438ab860a544dd67fdf0
+                  expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.PCIErrorCount[nvramPCIErrorCount.{#SNMPINDEX}])<>0'
+                  name: 'PCI Error on NVRAM {#NVRAM_INDEX}'
+                  opdata: 'Errors: {ITEM.LASTVALUE1}'
+                  priority: AVERAGE
+                  description: 'Please check NVRAM'
+                  manual_close: 'YES'
+                  tags:
+                    - tag: scope
+                      value: availability
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 6h
+        - uuid: e6ec458d643443fb80ad726203a1902b
+          name: 'Ports Discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#PORT},1.3.6.1.4.1.19746.1.13.3.1.1.2,{#PORT_TYPE},1.3.6.1.4.1.19746.1.13.3.1.1.3,{#PORT_LINK},1.3.6.1.4.1.19746.1.13.3.1.1.4]'
+          key: ports.discovery
+          delay: 1h
+          filter:
+            conditions:
+              - macro: '{#PORT_LINK}'
+                value: '.*bps.*'
+                formulaid: A
+          description: |
+            DATA-DOMAIN-MIB::systemPortsPort
+            DATA-DOMAIN-MIB::systemPortsConnectionType
+            DATA-DOMAIN-MIB::systemPortsLinkSpeed
+          item_prototypes:
+            - uuid: 13dfa0c3e9124192aead85b2834a4318
+              name: 'DataDomain: {#PORT} ({#PORT_TYPE}) Link Speed'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.13.3.1.1.4.{#SNMPINDEX}'
+              key: 'dell.dd.port.link.speed[systemPortsLinkSpeed.{#SNMPINDEX}]'
+              history: 7d
+              value_type: CHAR
+              trends: '0'
+              description: |
+                DATA-DOMAIN-MIB::systemPortsLinkSpeed
+                System port link speed.
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
+              tags:
+                - tag: component
+                  value: ports
+                - tag: ports
+                  value: '{#PORT_TYPE}'
+              trigger_prototypes:
+                - uuid: 2889cbeb26ab4285b1786697f9ac8106
+                  expression: 'change(/DELL PowerProtect DataDomain SNMP/dell.dd.port.link.speed[systemPortsLinkSpeed.{#SNMPINDEX}])<>0 or length(last(/DELL PowerProtect DataDomain SNMP/dell.dd.port.link.speed[systemPortsLinkSpeed.{#SNMPINDEX}]))=0'
+                  name: '{#PORT} ({#PORT_TYPE}) Link Speed changed'
+                  opdata: 'Current value: {ITEM.LASTVALUE1}'
+                  priority: AVERAGE
+                  description: 'Please check the port link.'
+                  manual_close: 'YES'
+                  tags:
+                    - tag: scope
+                      value: availability
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 6h
+        - uuid: 9b99054c2e9d4345931fa860bab3d947
+          name: 'PSU Discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#PSU_ENCLOSUREID},1.3.6.1.4.1.19746.1.1.1.1.1.1.1,{#PSU_DESCR},1.3.6.1.4.1.19746.1.1.1.1.1.1.3]'
+          key: psu.discovery
+          delay: 1h
+          description: |
+            DATA-DOMAIN-MIB::powerEnclosureID
+            DATA-DOMAIN-MIB::powerModuleDescription
+          item_prototypes:
+            - uuid: e552ab528dad45daa82f6a58b21eb8c0
+              name: 'DataDomain: {#PSU_DESCR} of Enclosure {#PSU_ENCLOSUREID} status'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.1.1.1.1.1.4.{#SNMPINDEX}'
+              key: 'dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}]'
+              trends: '0'
+              description: 'MIB: DATA-DOMAIN-MIB::powerModuleStatus'
+              valuemap:
+                name: 'DATA-DOMAIN-MIB::powerModuleStatus'
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
+              tags:
+                - tag: component
+                  value: psu
+                - tag: enclosure_id
+                  value: '{#PSU_ENCLOSUREID}'
+                - tag: psu_enclosure
+                  value: '{#PSU_ENCLOSUREID}'
+              trigger_prototypes:
+                - uuid: c0561d1df46c426287eebc8036c16340
+                  expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}])={$PSU.STATUS.CRIT:"acnone"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}])={$PSU.STATUS.CRIT:"failed"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}])={$PSU.STATUS.CRIT:"faulty"}'
+                  name: '{#PSU_DESCR} of Enclosure {#PSU_ENCLOSUREID} is in critical state'
+                  opdata: 'Current state: {ITEM.LASTVALUE1}'
+                  priority: AVERAGE
+                  description: 'Please check the power supply unit for errors.'
+                  manual_close: 'YES'
+                - uuid: af6af04d9e1944a2a88a5c8c4cf4a538
+                  expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}])={$PSU.STATUS.CRIT:"absent"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}])={$PSU.STATUS.CRIT:"unknown"}'
+                  name: '{#PSU_DESCR} of Enclosure {#PSU_ENCLOSUREID} is in warning state'
+                  opdata: 'Current state: {ITEM.LASTVALUE1}'
+                  priority: WARNING
+                  description: 'Please check the power supply unit for errors.'
+                  manual_close: 'YES'
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 6h
+      tags:
+        - tag: class
+          value: hardware
+        - tag: target
+          value: 'data domain'
+        - tag: target
+          value: dell
+        - tag: target
+          value: 'power protect'
+      macros:
+        - macro: '{$DISK.STATUS.CRIT:"absent"}'
+          value: '3'
+          description: 'The critical value of the Disk state for trigger expression.'
+        - macro: '{$DISK.STATUS.CRIT:"failed"}'
+          value: '4'
+          description: 'The critical value of the Disk state for trigger expression.'
+        - macro: '{$DISK.STATUS.CRIT:"unknown"}'
+          value: '2'
+          description: 'The critical value of the Disk state for trigger expression.'
+        - macro: '{$DISK.STATUS.INFO:"copyReconstruction"}'
+          value: '9'
+          description: 'The informational value of the Disk state for trigger expression.'
+        - macro: '{$DISK.STATUS.INFO:"raidReconstruction"}'
+          value: '8'
+          description: 'The informational value of the Disk state for trigger expression.'
+        - macro: '{$FAN.STATUS.CRIT:"fail"}'
+          value: '2'
+          description: 'The critical value of the FAN sensor for trigger expression.'
+        - macro: '{$FAN.STATUS.CRIT:"notfound"}'
+          value: '0'
+          description: 'The critical value of the FAN sensor for trigger expression.'
+        - macro: '{$FS.SPACE.CRIT}'
+          value: '95'
+          description: 'The critical value of the Filesystem space used (in %) for trigger expression.'
+        - macro: '{$FS.SPACE.TIME}'
+          value: 10m
+          description: 'The time during which Filesystem space usage may exceed the threshold.'
+        - macro: '{$FS.SPACE.WARN}'
+          value: '85'
+          description: 'The warning value of the Filesystem space used (in %) for trigger expression.'
+        - macro: '{$NVRAM.BATTERY.CHARGE.WARN}'
+          value: '50'
+          description: 'The warning value of the nvram battery for trigger expression.'
+        - macro: '{$NVRAM.BATTERY.STATUS.CRIT}'
+          value: '2'
+          description: 'The critical status of the nvram battery for trigger expression.'
+        - macro: '{$NVRAM.BATTERY.STATUS.OK}'
+          value: '0'
+          description: 'The OK status of the nvram battery for trigger expression.'
+        - macro: '{$NVRAM.BATTERY.STATUS.WARN:"disabled"}'
+          value: '1'
+          description: 'The WARN status of the nvram battery for trigger expression.'
+        - macro: '{$NVRAM.BATTERY.STATUS.WARN:"softdisabled"}'
+          value: '3'
+          description: 'The WARN status of the nvram battery for trigger expression.'
+        - macro: '{$PSU.STATUS.CRIT:"acnone"}'
+          value: '4'
+          description: 'The critical value of the PSU sensor for trigger expression.'
+        - macro: '{$PSU.STATUS.CRIT:"failed"}'
+          value: '2'
+          description: 'The critical value of the PSU sensor for trigger expression.'
+        - macro: '{$PSU.STATUS.CRIT:"faulty"}'
+          value: '3'
+          description: 'The critical value of the PSU sensor for trigger expression.'
+        - macro: '{$PSU.STATUS.WARN:"absent"}'
+          value: '0'
+          description: 'The warning value of the PSU sensor for trigger expression.'
+        - macro: '{$PSU.STATUS.WARN:"unknown"}'
+          value: '99'
+          description: 'The warning value of the PSU sensor for trigger expression.'
+      valuemaps:
+        - uuid: 2e37c525917f47a797a308a25685ac8c
+          name: 'DATA-DOMAIN-MIB::diskPropState'
+          mappings:
+            - value: '1'
+              newvalue: ok
+            - value: '2'
+              newvalue: unknown
+            - value: '3'
+              newvalue: absent
+            - value: '4'
+              newvalue: failed
+            - value: '5'
+              newvalue: spare
+            - value: '6'
+              newvalue: available
+            - value: '8'
+              newvalue: raidReconstruction
+            - value: '9'
+              newvalue: copyReconstruction
+            - value: '10'
+              newvalue: system
+        - uuid: c40923210e2e46b1a31da961ee09e307
+          name: 'DATA-DOMAIN-MIB::fanLevel'
+          mappings:
+            - value: '0'
+              newvalue: unknown
+            - value: '1'
+              newvalue: low
+            - value: '2'
+              newvalue: medium
+            - value: '3'
+              newvalue: high
+        - uuid: cf743b5ea2a3441e85a70a8cb879d979
+          name: 'DATA-DOMAIN-MIB::fanStatus'
+          mappings:
+            - value: '0'
+              newvalue: notfound
+            - value: '1'
+              newvalue: ok
+            - value: '2'
+              newvalue: fail
+        - uuid: e7d91be8da964a3c847a7f8d8b62f7f5
+          name: 'DATA-DOMAIN-MIB::fileSystemStatus'
+          mappings:
+            - value: '1'
+              newvalue: enabled
+            - value: '2'
+              newvalue: disabled
+            - value: '3'
+              newvalue: running
+            - value: '4'
+              newvalue: unknown
+            - value: '5'
+              newvalue: error
+            - value: '6'
+              newvalue: cleaning
+            - value: '7'
+              newvalue: starting
+        - uuid: 52ebe95e7b1e4bc49f37da1f1047593b
+          name: 'DATA-DOMAIN-MIB::nvramBatteryStatus'
+          mappings:
+            - value: '0'
+              newvalue: ok
+            - value: '1'
+              newvalue: disabled
+            - value: '2'
+              newvalue: discharged
+            - value: '3'
+              newvalue: softdisabled
+        - uuid: c4ef623d6548472fbf445bfacfcc2e18
+          name: 'DATA-DOMAIN-MIB::powerModuleStatus'
+          mappings:
+            - value: '0'
+              newvalue: absent
+            - value: '1'
+              newvalue: ok
+            - value: '2'
+              newvalue: failed
+            - value: '3'
+              newvalue: faulty
+            - value: '4'
+              newvalue: acnone
+            - value: '99'
+              newvalue: unknown
+  triggers:
+    - uuid: a5505bd8d3f64ea1ae02e421a4114d2f
+      expression: '(last(/DELL PowerProtect DataDomain SNMP/dell.dd.system.hw.uptime[hrSystemUptime.0])>0 and last(/DELL PowerProtect DataDomain SNMP/dell.dd.system.hw.uptime[hrSystemUptime.0])<10m) or (last(/DELL PowerProtect DataDomain SNMP/dell.dd.system.hw.uptime[hrSystemUptime.0])=0 and last(/DELL PowerProtect DataDomain SNMP/dell.dd.system.net.uptime[sysUpTime.0])<10m)'
+      name: 'DataDomain: Host has been restarted'
+      event_name: 'DataDomain: {HOST.NAME} has been restarted (uptime < 10m)'
+      priority: WARNING
+      description: 'Uptime is less than 10 minutes.'
+      manual_close: 'YES'
+      tags:
+        - tag: scope
+          value: notice
