@@ -61,15 +61,47 @@ These macros allow customization of thresholds and discovery filters. You can ov
 | `{$TEMP.SENSOR.STATUS.CRIT:"overheatCritical"}` | <p>The critical value of the Temp Sensor state for trigger expression.</p> | `4` |
 | `{$TEMP.SENSOR.STATUS.OK}` | <p>The OK status of the Temp Sensor for trigger expression.</p> | `1` |
 
+## Template Items
+
 ### Static Items
-- System information (model, serial number, version, uptime, notes, contact, location, name)
-- CPU usage (average and max busy %)
-- Disk busy, read, and write rates
-- File system status and message
-- DDBoost backup/restore connections
-- CIFS and NFS operations rate
-- SNMP agent availability check
-- Fallback SNMP trap catcher
+
+| Name | Description | Type | Key | Additional Info |
+|------|-------------|------|-----|-----------------|
+| DataDomain: DDBoost Backup Connections | DATA-DOMAIN-MIB::ddboostStatsBackupConn<br>Number of Backup connections. | SNMP agent | dell.dd.boost.backup.con[ddboostStatsBackupConn] | Units: none<br>Tag: component=charts |
+| DataDomain: DDBoost Restore Connections | DATA-DOMAIN-MIB::ddboostStatsRestoreConn<br>Number of Restore connections. | SNMP agent | dell.dd.boost.restore.con[ddboostStatsRestoreConn] | Units: none<br>Tag: component=charts |
+| DataDomain: File System Status Message | DATA-DOMAIN-MIB::fileSystemStatusMessage | SNMP agent | dell.dd.fs.status.message | Value type: Text<br>Discard unchanged (1d)<br>Tag: component=filesystem |
+| DataDomain: File System Status | DATA-DOMAIN-MIB::fileSystemStatus | SNMP agent | dell.dd.fs.status[fileSystemStatus] | Valuemap: DATA-DOMAIN-MIB::fileSystemStatus<br>Discard unchanged (1d)<br>Tag: component=filesystem |
+| DataDomain: CIFS operations rate | DATA-DOMAIN-MIB::cifsOpsPerSecond<br>Number of CIFS Operations performed per second. | SNMP agent | dell.dd.sys.cifs.ops[cifsOpsPerSecond] | Units: ops<br>Tag: component=charts |
+| DataDomain: Cpu Average Busy | DATA-DOMAIN-MIB::cpuAvgPercentageBusy<br>CPU average percentage busy. | SNMP agent | dell.dd.sys.cpu.avg.busy[cpuAvgPercentageBusy] | Units: %<br>Tag: component=charts |
+| DataDomain: Cpu Max Busy | DATA-DOMAIN-MIB::cpuMaxPercentageBusy<br>CPU max percentage busy. | SNMP agent | dell.dd.sys.cpu.max.busy[cpuMaxPercentageBusy] | Units: %<br>Tag: component=charts |
+| DataDomain: Disk Busy rate | DATA-DOMAIN-MIB::diskBusyPercentage<br>Percentage of Time Disks were busy. | SNMP agent | dell.dd.sys.disk.busy[diskBusyPercentage] | Units: %<br>Tag: component=charts |
+| DataDomain: Disk Read rate | DATA-DOMAIN-MIB::diskReadKBytesPerSecond<br>Number of KBytes per second read from disk. | SNMP agent | dell.dd.sys.disk.read[diskReadKBytesPerSecond] | Units: B/s<br>Multiplier: ×1024<br>Tag: component=charts |
+| DataDomain: Disk Write rate | DATA-DOMAIN-MIB::diskWriteKBytesPerSecond<br>Number of KBytes per second written to disk. | SNMP agent | dell.dd.sys.disk.write[diskWriteKBytesPerSecond] | Units: B/s<br>Multiplier: ×1024<br>Tag: component=charts |
+| DataDomain: Hardware Model | DATA-DOMAIN-MIB::systemModelNumber<br>Model Number of the System | SNMP agent | dell.dd.sys.model[systemModelNumber] | Value type: Char<br>Inventory: MODEL<br>Discard unchanged (1d)<br>Tag: component=system |
+| DataDomain: NFS operations rate | DATA-DOMAIN-MIB::nfsOpsPerSecond<br>Number of NFS Operations performed per second. | SNMP agent | dell.dd.sys.nfs.ops[nfsOpsPerSecond] | Units: ops<br>Tag: component=charts |
+| DataDomain: System Notes | DATA-DOMAIN-MIB::sysNotes<br>Customer defined notes associated with this DD System | SNMP agent | dell.dd.sys.notes[sysNotes] | Update: 1h<br>Value type: Text<br>Inventory: NOTES<br>Discard unchanged (1d)<br>Tag: component=system |
+| DataDomain: Serial Number | DATA-DOMAIN-MIB::systemSerialNumber<br>Serial Number of the System | SNMP agent | dell.dd.sys.serialnumber[systemSerialNumber] | Value type: Char<br>Inventory: SERIALNO_A<br>Discard unchanged (1d)<br>Tag: component=system |
+| DataDomain: System Current Time | DATA-DOMAIN-MIB::systemCurrentTime<br>DDR system's current time | SNMP agent | dell.dd.sys.time[systemCurrentTime] | Value type: Char<br>Discard unchanged (1d)<br>Tag: component=system |
+| DataDomain: System Version | DATA-DOMAIN-MIB::systemVersion<br>DD version of the system | SNMP agent | dell.dd.sys.version[systemVersion] | Update: 1h<br>Value type: Char<br>Inventory: OS<br>Discard unchanged (1d)<br>Tag: component=system |
+| DataDomain: Uptime (hardware) | HOST-RESOURCES-MIB<br>Time since last hardware initialization | SNMP agent | dell.dd.system.hw.uptime[hrSystemUptime.0] | Units: uptime<br>Update: 30s<br>Multiplier: ×0.01<br>Tag: component=system |
+| DataDomain: Uptime (network) | SNMPv2-MIB<br>Time since network management portion was re-initialized | SNMP agent | dell.dd.system.net.uptime[sysUpTime.0] | Units: uptime<br>Update: 30s<br>Multiplier: ×0.01<br>Tag: component=system |
+| DataDomain: SNMP traps (fallback) | Item is used to collect all SNMP traps unmatched by other snmptrap items | SNMP trap | snmptrap.fallback | Value type: Log<br>Tag: Application=General |
+| DataDomain: System contact details | SNMPv2-MIB::sysContact<br>Contact person information | SNMP agent | system.contact[sysContact.0] | Update: 1h<br>Inventory: CONTACT<br>Discard unchanged (1d)<br>Tag: Application=General |
+| DataDomain: System location | SNMPv2-MIB::sysLocation<br>Physical location | SNMP agent | system.location[sysLocation.0] | Update: 1h<br>Inventory: LOCATION<br>Discard unchanged (1h)<br>Tag: Application=General |
+| DataDomain: System name | SNMPv2-MIB::sysName<br>Administratively-assigned name (usually FQDN) | SNMP agent | system.name | Update: 1h<br>Inventory: NAME<br>Discard unchanged (1h)<br>Tag: Application=General |
+| DataDomain: System object ID | SNMPv2-MIB::sysObjectID<br>Vendor's authoritative identification | SNMP agent | system.objectid[sysObjectID.0] | Update: 15m<br>Discard unchanged (1h)<br>Tag: Application=General |
+| DataDomain: SNMP agent availability | Internal item checking SNMP availability | Internal | zabbix[host,snmp,available] | Tag: Application=Status |
+
+## Template Triggers (Static Items)
+
+| Name | Description | Expression | Severity | Dependencies | Additional Info |
+|------|-------------|------------|----------|--------------|-----------------|
+| File System Status is not in optimal state | Check File System | last(/DELL PowerProtect DataDomain SNMP/dell.dd.fs.status[fileSystemStatus])<>3 | Warning | None | Manual close: YES<br>Tag: scope=availability |
+| DataDomain: Device has been replaced | Device serial number has changed. Ack to close | last(...serialnumber,#1)<>last(...serialnumber,#2) and length(last(...serialnumber))>0 | Information | None | Manual close: YES<br>Tag: scope=notice |
+| DataDomain: System Version has changed | System version has changed. Ack to close. | last(...systemVersion,#1)<>last(...systemVersion,#2) and length(last(...systemVersion))>0 | Information | None | Manual close: YES<br>Tag: scope=notice |
+| DataDomain: System name has changed | The name of the system has changed. Acknowledge to close the problem manually. | last(/.../system.name,#1)<>last(/.../system.name,#2) and length(last(...system.name))>0 | Information | None | Manual close: YES<br>Tags: scope=notice, security |
+| DataDomain: No SNMP data collection | SNMP is not available for polling. Please check device connectivity and SNMP settings. | max(/.../zabbix[host,snmp,available],{$SNMP.TIMEOUT})=0 | Warning | None | Tag: scope=availability |
+| DataDomain: Host has been restarted | Uptime is less than 10 minutes. | (last(hw.uptime)>0 and last(hw.uptime)<10m) or (last(hw.uptime)=0 and last(net.uptime)<10m) | Warning | None | Manual close: YES<br>Tag: scope=notice |
 
 ### Discovery Rules & Prototypes
 1. **Network Interfaces** – Standard IF-MIB discovery with traffic, errors, discards, speed, status, and triggers for link down, high utilization, high error rate, speed changes.
