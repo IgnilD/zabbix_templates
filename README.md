@@ -4,15 +4,8 @@
 
 This Zabbix template provides comprehensive monitoring for **Dell PowerProtect Data Domain** (formerly EMC Data Domain) appliances via SNMP.
 
-It collects key hardware and system metrics, discovers components automatically (disks, fans, PSUs, temperature sensors, NVRAM, enclosures, network interfaces, file systems, etc.), and generates appropriate alerts for failures, warnings, and performance issues.
-
-**Supported MIBs:**
-- DATA-DOMAIN-MIB
-- SNMPv2-MIB
-- IF-MIB
-- HOST-RESOURCES-MIB
-
-**Zabbix version:** Tested with Zabbix 7.0 (template version 7.0)
+**Requirements:** 
+Zabbix version: Zabbix 7.0 and higher.
 
 ## Template Features
 
