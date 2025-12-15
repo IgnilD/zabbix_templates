@@ -1,13 +1,24 @@
+This template is for Zabbix version: 7.0
+
 # Zabbix Template: DELL PowerProtect DataDomain SNMP
 
 ## Overview
 
 This Zabbix template provides comprehensive monitoring for **Dell PowerProtect Data Domain** (formerly EMC Data Domain) appliances via SNMP.
 
-**Requirements:** 
-Zabbix version: Zabbix 7.0 and higher.
+## Requirements:
+Zabbix version: 7.0 and higher.
 
-## Template Features
+## Configuration
+
+Zabbix should be configured according to the instructions in the [Templates out of the box](https://www.zabbix.com/documentation/7.4/en/manual/config/templates_out_of_the_box) section.
+
+## Setup
+1. Create a host for DataDomain with management IP as SNMP interface.
+2. Link the template to the host.
+3. Customize macro values if needed.
+
+
 
 ### Static Items
 - System information (model, serial number, version, uptime, notes, contact, location, name)
