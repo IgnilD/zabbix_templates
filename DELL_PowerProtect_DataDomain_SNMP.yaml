@@ -1571,6 +1571,98 @@ zabbix_export:
             - type: DISCARD_UNCHANGED_HEARTBEAT
               parameters:
                 - 6h
+        - uuid: d708f925cb5845cbae40fddd4e309813
+          name: 'Temperature discovery'
+          type: SNMP_AGENT
+          snmp_oid: 'discovery[{#TEMP_ENCLOSUREID},1.3.6.1.4.1.19746.1.1.2.1.1.1.1,{#TEMP_DESCR},1.3.6.1.4.1.19746.1.1.2.1.1.1.4]'
+          key: temperature.discovery
+          delay: 10m
+          filter:
+            evaltype: AND
+            conditions:
+              - macro: '{#TEMP_ENCLOSUREID}'
+                value: '{$TEMP.SENSOR.ENCLOSURE.MATCHES}'
+                formulaid: A
+              - macro: '{#TEMP_ENCLOSUREID}'
+                value: '{$TEMP.SENSOR.ENCLOSURE.NOT_MATCHES}'
+                operator: NOT_MATCHES_REGEX
+                formulaid: B
+          description: |
+            DATA-DOMAIN-MIB::tempEnclosureID
+            DATA-DOMAIN-MIB::tempSensorDescription
+          item_prototypes:
+            - uuid: 75201b38a9eb43aa897d5e97bd5ef439
+              name: 'DataDomain: "{#TEMP_DESCR}" of Enclosure {#TEMP_ENCLOSUREID} status'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.1.2.1.1.1.6.{#SNMPINDEX}'
+              key: 'dell.dd.temp.status[tempSensorStatus.{#SNMPINDEX}]'
+              history: 7d
+              trends: '0'
+              description: |
+                DATA-DOMAIN-MIB::tempSensorStatus
+                Current status of the sensor.
+              valuemap:
+                name: 'DATA-DOMAIN-MIB::tempSensorStatus'
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
+              tags:
+                - tag: component
+                  value: temperature
+                - tag: enclosure_id
+                  value: '{#TEMP_ENCLOSUREID}'
+                - tag: temp_enclosure
+                  value: '{#TEMP_ENCLOSUREID}'
+              trigger_prototypes:
+                - uuid: 19b0cb4e6ec841ef952098d9450e0952
+                  expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.temp.status[tempSensorStatus.{#SNMPINDEX}])={$TEMP.SENSOR.STATUS.CRIT:"overheatCritical"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.temp.status[tempSensorStatus.{#SNMPINDEX}])={$TEMP.SENSOR.STATUS.CRIT:"failed"}'
+                  name: '"{#TEMP_DESCR}" of Enclosure {#TEMP_ENCLOSUREID} is in critical status'
+                  opdata: 'Current status: {ITEM.LASTVALUE1}'
+                  priority: AVERAGE
+                  description: 'Please check the device for faults.'
+                  manual_close: 'YES'
+                  tags:
+                    - tag: scope
+                      value: availability
+                - uuid: c9c97022fa4d4c6c90e176b9fb76e1c3
+                  expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.temp.status[tempSensorStatus.{#SNMPINDEX}])<>{$TEMP.SENSOR.STATUS.OK}'
+                  name: '"{#TEMP_DESCR}" of Enclosure {#TEMP_ENCLOSUREID} is not in optimal status'
+                  opdata: 'Current status: {ITEM.LASTVALUE1}'
+                  priority: WARNING
+                  description: 'Please check the device for faults.'
+                  manual_close: 'YES'
+                  dependencies:
+                    - name: '"{#TEMP_DESCR}" of Enclosure {#TEMP_ENCLOSUREID} is in critical status'
+                      expression: 'last(/DELL PowerProtect DataDomain SNMP/dell.dd.temp.status[tempSensorStatus.{#SNMPINDEX}])={$TEMP.SENSOR.STATUS.CRIT:"overheatCritical"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.temp.status[tempSensorStatus.{#SNMPINDEX}])={$TEMP.SENSOR.STATUS.CRIT:"failed"}'
+                  tags:
+                    - tag: scope
+                      value: availability
+            - uuid: d3e3388ba9d24757aeec099a7dd0b1dd
+              name: 'DataDomain: "{#TEMP_DESCR}" of Enclosure {#TEMP_ENCLOSUREID} value'
+              type: SNMP_AGENT
+              snmp_oid: '1.3.6.1.4.1.19746.1.1.2.1.1.1.5.{#SNMPINDEX}'
+              key: 'dell.dd.temp.value[tempSensorCurrentValue.{#SNMPINDEX}]'
+              trends: '0'
+              units: °C
+              description: |
+                DATA-DOMAIN-MIB::tempSensorCurrentValue
+                Current Temperature Value of the sensor.
+              preprocessing:
+                - type: DISCARD_UNCHANGED_HEARTBEAT
+                  parameters:
+                    - 6h
+              tags:
+                - tag: component
+                  value: temperature
+                - tag: enclosure_id
+                  value: '{#TEMP_ENCLOSUREID}'
+                - tag: temp_enclosure
+                  value: '{#TEMP_ENCLOSUREID}'
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 6h
       tags:
         - tag: class
           value: hardware
@@ -1669,6 +1761,21 @@ zabbix_export:
         - macro: '{$PSU.STATUS.WARN:"unknown"}'
           value: '99'
           description: 'The warning value of the PSU sensor for trigger expression.'
+        - macro: '{$TEMP.SENSOR.ENCLOSURE.MATCHES}'
+          value: '.*'
+          description: 'Filter for discovering a temperature sensor by enclosure ID.'
+        - macro: '{$TEMP.SENSOR.ENCLOSURE.NOT_MATCHES}'
+          value: CHANGE_IF_NEEDED
+          description: 'Filter for discovering a temperature sensor by enclosure ID.'
+        - macro: '{$TEMP.SENSOR.STATUS.CRIT:"failed"}'
+          value: '0'
+          description: 'The critical value of the Temp Sensor state for trigger expression.'
+        - macro: '{$TEMP.SENSOR.STATUS.CRIT:"overheatCritical"}'
+          value: '4'
+          description: 'The critical value of the Temp Sensor state for trigger expression.'
+        - macro: '{$TEMP.SENSOR.STATUS.OK}'
+          value: '1'
+          description: 'The OK status of the Temp Sensor for trigger expression.'
       valuemaps:
         - uuid: 2e37c525917f47a797a308a25685ac8c
           name: 'DATA-DOMAIN-MIB::diskPropState'
@@ -1754,6 +1861,19 @@ zabbix_export:
               newvalue: acnone
             - value: '99'
               newvalue: unknown
+        - uuid: f606fe3a923741ee8c6b36c31e5f7284
+          name: 'DATA-DOMAIN-MIB::tempSensorStatus'
+          mappings:
+            - value: '0'
+              newvalue: failed
+            - value: '1'
+              newvalue: ok
+            - value: '2'
+              newvalue: notfound
+            - value: '3'
+              newvalue: overheatWarning
+            - value: '4'
+              newvalue: overheatCritical
         - uuid: 865400a95e8d41a98e78c429116404fa
           name: 'IF-MIB::ifOperStatus'
           mappings:
