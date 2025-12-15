@@ -103,57 +103,63 @@ These macros allow customization of thresholds and discovery filters. You can ov
 | DataDomain: No SNMP data collection | SNMP is not available for polling. Please check device connectivity and SNMP settings. | max(/.../zabbix[host,snmp,available],{$SNMP.TIMEOUT})=0 | Warning | None | Tag: scope=availability |
 | DataDomain: Host has been restarted | Uptime is less than 10 minutes. | (last(hw.uptime)>0 and last(hw.uptime)<10m) or (last(hw.uptime)=0 and last(net.uptime)<10m) | Warning | None | Manual close: YES<br>Tag: scope=notice |
 
-### Discovery Rules & Prototypes
-1. **Network Interfaces** – Standard IF-MIB discovery with traffic, errors, discards, speed, status, and triggers for link down, high utilization, high error rate, speed changes.
-2. **Disks** – Discovers individual disks per enclosure with model, serial, firmware, capacity, state, and triggers for failed/absent/unknown disks and reconstruction events.
-3. **Enclosures** – Model, serial, capacity.
-4. **Fans** – Per-enclosure fan description, speed level, status with critical triggers.
-5. **Power Supplies (PSU)** – Per-enclosure PSU status with critical/warning triggers.
-6. **Temperature Sensors** – Per-enclosure sensor description, current value (°C), status with overheat and failure triggers.
-7. **NVRAM** – Memory size, PCI/memory error counts, and per-battery charge/status with low charge and failure triggers.
-8. **NVRAM BBU** – Battery charge and status monitoring.
-9. **File Systems** – Per-resource (name + tier) space used/available/cleanable/size and triggers for high utilization (85% warning, 95% critical).
-10. **DDBoost Interfaces** – Backup, restore, and total connections per interface (discovery currently disabled by default).
-11. **Ports** – Physical port link speed changes.
+## Discovery Rules
 
-### Triggers
-- Host restart detection (uptime < 10 min)
-- File system not in optimal state
-- Device replacement (serial number change)
-- System version change
-- System name change
-- Component-specific failures (disks, fans, PSUs, temperature, NVRAM batteries, etc.)
-- Performance alerts (high CPU/disk/network utilization, errors)
+The template uses Low-Level Discovery (LLD) to automatically create items and triggers for dynamic components.
 
-### Tags
-- `class: hardware`
-- `target: data domain`, `dell`, `power protect`
-- Component-specific tags (e.g., `component: filesystem`, `component: disk`, `component: fan`)
+| Discovery Rule Name                  | Description                                                                 | Update Interval | Status    | Discovered Macros / LLD Macros                  | Notes |
+|--------------------------------------|-----------------------------------------------------------------------------|-----------------|-----------|--------------------------------------------------|-------|
+| DDBoost Connections discovery        | Discovers DDBoost interfaces (DATA-DOMAIN-MIB::ddboostInterface)            | 1h              | Disabled  | `{#INTERFAC}`                                    | Disabled by default – enable if needed |
+| Disk discovery                       | Discovers disks with enclosure ID and index                                 | 1h              | Enabled   | `{#DISK_ENCLOSUREID}`, `{#DISK_INDEX}`           | Creates items for capacity, model, serial, firmware, state |
+| Enclosure Discovery                  | Discovers storage enclosures                                                | 1h              | Enabled   | `{#ENCLOSURE_NR}`                                | Creates items for model, serial, capacity |
+| FAN discovery                        | Discovers fans per enclosure                                                | 1h              | Enabled   | `{#FAN_ENCLOSUREID}`, `{#FAN_DESCR}`             | Creates items for speed level and status |
+| FS discovery                         | Discovers file system resources (name + tier)                               | 1h              | Enabled   | `{#FS_INDEX}`, `{#FS_NAME}`, `{#FS_TIER}`         | Creates space used/available/cleanable items and utilization triggers |
+| Network interfaces discovery         | Standard IF-MIB interface discovery with advanced filtering                 | 1h              | Enabled   | `{#IFNAME}`, `{#IFALIAS}`, `{#IFDESCR}`, `{#IFOPERSTATUS}`, `{#IFADMINSTATUS}`, `{#IFTYPE}` | Extensive traffic, error, speed, status items + triggers |
+| NVRAM BBU Discovery                  | Discovers NVRAM backup battery units                                        | 1h              | Enabled   | `{#BBU_INDEX}`                                   | Creates charge % and status items |
+| NVRAM Discovery                      | Discovers NVRAM cards                                                       | 1h              | Enabled   | `{#NVRAM_INDEX}`                                 | Creates memory size and error count items |
+| Ports Discovery                      | Discovers physical ports (only those reporting speed in bps)                 | 1h              | Enabled   | `{#PORT}`, `{#PORT_TYPE}`, `{#PORT_LINK}`         | Monitors link speed changes |
+| PSU Discovery                        | Discovers power supply units per enclosure                                  | 1h              | Enabled   | `{#PSU_ENCLOSUREID}`, `{#PSU_DESCR}`             | Creates status items |
+| Temperature discovery                | Discovers temperature sensors per enclosure                                 | 10m             | Enabled   | `{#TEMP_ENCLOSUREID}`, `{#TEMP_DESCR}`           | Creates temperature value (°C) and status items |
 
-### Macros
-Standard macros for thresholds and filters (e.g., `{$FS.SPACE.WARN}=85`, `{$FS.SPACE.CRIT}=95`, network interface filters, etc.) – all customizable per host/template.
+### Discovered Item Prototypes (Summary)
 
-## Installation
+| Component          | Created Items                                                                                              | Additional Info |
+|--------------------|------------------------------------------------------------------------------------------------------------|-----------------|
+| **DDBoost**        | Backup connections, Restore connections, Total connections per interface                                   | Tag: component=charts |
+| **Disks**          | Capacity, Firmware version, Model, Serial number, State (with valuemap)                                     | Discard unchanged (6h) |
+| **Enclosures**     | Capacity, Model, Serial number                                                                             | Update: daily/weekly |
+| **Fans**           | Speed level (valuemap), Status (valuemap)                                                                  | Discard unchanged (6h) |
+| **File Systems**   | Space available, cleanable, size, used (B), used (%)                                                       | Multiplier ×1,073,741,824 for GB→B |
+| **Network**        | Inbound/outbound bits (bps), packets with errors/discards, speed, operational status, interface type       | Change per second, multipliers where needed |
+| **NVRAM BBU**      | Battery charge (%), Status (valuemap)                                                                      | Discard unchanged (6h) |
+| **NVRAM**          | Total memory (B), Memory error count, PCI error count                                                      | Discard unchanged (6h) |
+| **Ports**          | Link speed (text)                                                                                          | Discard unchanged (6h) |
+| **PSU**            | Status (valuemap)                                                                                          | Discard unchanged (6h) |
+| **Temperature**    | Current value (°C), Status (valuemap)                                                                      | Discard unchanged (6h) |
 
-1. In Zabbix frontend, go to **Configuration → Templates**.
-2. Click **Import** in the upper right.
-3. Select the YAML file containing this template (or paste the content if importing manually).
-4. Confirm import (enable "Create new" for groups if needed).
-5. Assign the template **DELL PowerProtect DataDomain SNMP** to your Data Domain hosts.
-6. Configure SNMP on the Data Domain device (community string, usually `public` for read-only).
-7. Wait for discovery (most rules run every 1 hour, temperature every 10 min).
+### Discovered Trigger Prototypes (Summary)
 
-## Customization Tips
+| Component          | Trigger Name                                                                 | Severity   | Description / Notes |
+|--------------------|------------------------------------------------------------------------------|------------|---------------------|
+| **Disks**          | Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} is in critical state      | Average    | absent / failed / unknown |
+| **Disks**          | Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} make reconstruction       | Information| copyReconstruction / raidReconstruction |
+| **Fans**           | {#FAN_DESCR} of Enclosure {#FAN_ENCLOSUREID} is in critical state             | Average    | fail / notfound |
+| **File Systems**   | {#FS_NAME} of {#FS_TIER} Tier space is low                                   | Warning    | > {$FS.SPACE.WARN}% (depends on critical) |
+| **File Systems**   | {#FS_NAME} of {#FS_TIER} Tier space is too low                                | High       | > {$FS.SPACE.CRIT}% |
+| **Network**        | Interface {#IFNAME}({#IFALIAS}): Link down                                    | Average    | With recovery expression, manual close |
+| **Network**        | Interface {#IFNAME}({#IFALIAS}): Ethernet has changed to lower speed         | Information| Speed drop detection |
+| **Network**        | Interface {#IFNAME}({#IFALIAS}): High bandwidth usage                         | Warning    | Utilisation > {$IF.UTIL.MAX} % |
+| **Network**        | Interface {#IFNAME}({#IFALIAS}): High error rate                              | Warning    | Errors > {$IF.ERRORS.WARN} threshold |
+| **NVRAM BBU**      | Battery Unit {#BBU_INDEX} have low charge                                    | Warning    | < {$NVRAM.BATTERY.CHARGE.WARN} |
+| **NVRAM BBU**      | Battery Unit {#BBU_INDEX} is in critical state                               | Average    | Discharged status |
+| **NVRAM BBU**      | Battery Unit {#BBU_INDEX} is in warning state                                 | Warning    | Disabled / softdisabled |
+| **NVRAM BBU**      | Battery Unit {#BBU_INDEX} is not in optimal state                            | Warning    | Any non-OK state (depends on above) |
+| **NVRAM**          | Memory Error on NVRAM {#NVRAM_INDEX}                                          | Average    | Count ≠ 0 |
+| **NVRAM**          | PCI Error on NVRAM {#NVRAM_INDEX}                                             | Average    | Count ≠ 0 |
+| **Ports**          | {#PORT} ({#PORT_TYPE}) Link Speed changed                                    | Average    | Speed change or empty value |
+| **PSU**            | {#PSU_DESCR} of Enclosure {#PSU_ENCLOSUREID} is in critical state            | Average    | acnone / failed / faulty |
+| **PSU**            | {#PSU_DESCR} of Enclosure {#PSU_ENCLOSUREID} is in warning state             | Warning    | absent / unknown |
+| **Temperature**    | "{#TEMP_DESCR}" of Enclosure {#TEMP_ENCLOSUREID} is in critical status        | Average    | overheatCritical / failed |
+| **Temperature**    | "{#TEMP_DESCR}" of Enclosure {#TEMP_ENCLOSUREID} is not in optimal status    | Warning    | Any non-OK state (depends on critical) |
 
-- Adjust filesystem thresholds via macros `{$FS.SPACE.WARN}` and `{$FS.SPACE.CRIT}` on host or template level.
-- Fine-tune network interface discovery filters if needed (default excludes loopbacks, docker interfaces, etc.).
-- Enable the disabled **DDBoost Connections discovery** rule if you want per-interface DDBoost metrics.
-- Use host macros to override any component-specific thresholds (e.g., NVRAM battery low charge warning).
-
-## Known Notes
-
-- Some items use `DISCARD_UNCHANGED_HEARTBEAT` to reduce stored values for rarely changing data (serial, model, firmware, etc.).
-- Units are properly converted (e.g., disk rates from KB/s → B/s, filesystem GB → bytes).
-- Triggers include manual close option where appropriate.
-
-Enjoy reliable monitoring of your Dell PowerProtect Data Domain appliances!
+All discovered triggers support manual close where appropriate and use relevant tags (availability, performance, etc.).
