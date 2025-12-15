@@ -492,7 +492,9 @@ zabbix_export:
               key: 'dell.dd.boost.backup.con[ddboostBackupConnections.{#SNMPINDEX}]'
               history: 7d
               trends: '0'
-              description: 'DATA-DOMAIN-MIB::ddboostBackupConnections'
+              description: |
+                DATA-DOMAIN-MIB::ddboostBackupConnections
+                DDBoost backup connections.
               tags:
                 - tag: component
                   value: charts
@@ -503,7 +505,9 @@ zabbix_export:
               key: 'dell.dd.boost.restore.con[ddboostRestoreConnections.{#SNMPINDEX}]'
               history: 7d
               trends: '0'
-              description: 'DATA-DOMAIN-MIB::ddboostRestoreConnections'
+              description: |
+                DATA-DOMAIN-MIB::ddboostRestoreConnections
+                DDBoost restore connections.
               tags:
                 - tag: component
                   value: charts
@@ -514,7 +518,9 @@ zabbix_export:
               key: 'dell.dd.boost.total.con[ddboostTotalConnections.{#SNMPINDEX}]'
               history: 7d
               trends: '0'
-              description: 'DATA-DOMAIN-MIB::ddboostTotalConnections'
+              description: |
+                DATA-DOMAIN-MIB::ddboostTotalConnections
+                DDBoost total connections.
               tags:
                 - tag: component
                   value: charts
@@ -689,7 +695,9 @@ zabbix_export:
               history: 7d
               value_type: CHAR
               trends: '0'
-              description: 'DATA-DOMAIN-MIB::enclosureListCapacity'
+              description: |
+                DATA-DOMAIN-MIB::enclosureListCapacity
+                Enclosure capacity.
               preprocessing:
                 - type: DISCARD_UNCHANGED_HEARTBEAT
                   parameters:
@@ -708,7 +716,9 @@ zabbix_export:
               history: 7d
               value_type: CHAR
               trends: '0'
-              description: 'DATA-DOMAIN-MIB::enclosureListModel'
+              description: |
+                DATA-DOMAIN-MIB::enclosureListModel
+                Enclosure model.
               preprocessing:
                 - type: DISCARD_UNCHANGED_HEARTBEAT
                   parameters:
@@ -727,7 +737,9 @@ zabbix_export:
               history: 7d
               value_type: CHAR
               trends: '0'
-              description: 'DATA-DOMAIN-MIB::enclosureListSerialNum'
+              description: |
+                DATA-DOMAIN-MIB::enclosureListSerialNum
+                Enclosure Serial Number.
               preprocessing:
                 - type: DISCARD_UNCHANGED_HEARTBEAT
                   parameters:
@@ -757,7 +769,9 @@ zabbix_export:
               snmp_oid: '1.3.6.1.4.1.19746.1.1.3.1.1.1.5.{#SNMPINDEX}'
               key: 'dell.dd.fan.level[fanLevel.{#SNMPINDEX}]'
               trends: '0'
-              description: 'MIB: DATA-DOMAIN-MIB::fanLevel'
+              description: |
+                MIB: DATA-DOMAIN-MIB::fanLevel
+                Current run level of fan.
               valuemap:
                 name: 'DATA-DOMAIN-MIB::fanLevel'
               preprocessing:
@@ -779,7 +793,7 @@ zabbix_export:
               trends: '0'
               description: |
                 MIB: DATA-DOMAIN-MIB::fanStatus
-                This attribute defines the probe status of the cooling device.
+                Current status of the fan.
               valuemap:
                 name: 'DATA-DOMAIN-MIB::fanStatus'
               preprocessing:
@@ -827,7 +841,9 @@ zabbix_export:
               history: 7d
               trends: '0'
               units: B
-              description: 'MIB: DATA-DOMAIN-MIB::fileSystemSpaceAvail'
+              description: |
+                MIB: DATA-DOMAIN-MIB::fileSystemSpaceAvail
+                Amount of available space within the file system resource in gigabytes.
               preprocessing:
                 - type: MULTIPLIER
                   parameters:
@@ -847,7 +863,9 @@ zabbix_export:
               history: 7d
               trends: '0'
               units: B
-              description: 'MIB: DATA-DOMAIN-MIB::fileSystemSpaceCleanable'
+              description: |
+                MIB: DATA-DOMAIN-MIB::fileSystemSpaceCleanable
+                Amount of cleanable space within the file system resource in gigabytes.
               preprocessing:
                 - type: MULTIPLIER
                   parameters:
@@ -867,7 +885,9 @@ zabbix_export:
               history: 7d
               trends: '0'
               units: B
-              description: 'MIB: DATA-DOMAIN-MIB::fileSystemSpaceSize'
+              description: |
+                MIB: DATA-DOMAIN-MIB::fileSystemSpaceSize
+                Size of the file system resource in gigabytes.
               preprocessing:
                 - type: MULTIPLIER
                   parameters:
@@ -887,7 +907,9 @@ zabbix_export:
               history: 7d
               trends: '0'
               units: '%'
-              description: 'MIB: DATA-DOMAIN-MIB::fileSystemPercentUsed'
+              description: |
+                MIB: DATA-DOMAIN-MIB::fileSystemPercentUsed
+                Percentage of used space within the file system resource.
               tags:
                 - tag: component
                   value: filesystem
@@ -925,7 +947,9 @@ zabbix_export:
               history: 7d
               trends: '0'
               units: B
-              description: 'MIB: DATA-DOMAIN-MIB::fileSystemSpaceUsed'
+              description: |
+                MIB: DATA-DOMAIN-MIB::fileSystemSpaceUsed
+                Amount of used space within the file system resource in gigabytes.
               preprocessing:
                 - type: MULTIPLIER
                   parameters:
@@ -1304,7 +1328,9 @@ zabbix_export:
               key: 'dell.dd.nvram.bbu.charge[nvramBatteryCharge.{#SNMPINDEX}]'
               trends: '0'
               units: '%'
-              description: 'DATA-DOMAIN-MIB::nvramBatteryCharge'
+              description: |
+                DATA-DOMAIN-MIB::nvramBatteryCharge
+                NVRAM Battery charge percentage.
               preprocessing:
                 - type: DISCARD_UNCHANGED_HEARTBEAT
                   parameters:
@@ -1331,7 +1357,9 @@ zabbix_export:
               snmp_oid: '1.3.6.1.4.1.19746.1.2.3.1.1.3.{#SNMPINDEX}'
               key: 'dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}]'
               trends: '0'
-              description: 'DATA-DOMAIN-MIB::nvramBatteryStatus'
+              description: |
+                DATA-DOMAIN-MIB::nvramBatteryStatus
+                NVRAM Battery Status.
               valuemap:
                 name: 'DATA-DOMAIN-MIB::nvramBatteryStatus'
               preprocessing:
@@ -1403,7 +1431,9 @@ zabbix_export:
               key: 'dell.dd.nvram.HCMemorySize[nvramHCMemorySize.{#SNMPINDEX}]'
               trends: '0'
               units: B
-              description: 'DATA-DOMAIN-MIB::nvramHCMemorySize'
+              description: |
+                DATA-DOMAIN-MIB::nvramHCMemorySize
+                The size of an NVRAM entity's memory in bytes, with support for high capacity modules. This entry may be used in place of nvramMemorySize.
               preprocessing:
                 - type: DISCARD_UNCHANGED_HEARTBEAT
                   parameters:
@@ -1419,7 +1449,9 @@ zabbix_export:
               snmp_oid: '1.3.6.1.4.1.19746.1.2.2.1.1.3.{#SNMPINDEX}'
               key: 'dell.dd.nvram.MemoryErrorCount[nvramMemoryErrorCount.{#SNMPINDEX}]'
               trends: '0'
-              description: 'DATA-DOMAIN-MIB::nvramMemoryErrorCount'
+              description: |
+                DATA-DOMAIN-MIB::nvramMemoryErrorCount
+                Number of Memory Errors Encountered on NVRAM Card.
               preprocessing:
                 - type: DISCARD_UNCHANGED_HEARTBEAT
                   parameters:
@@ -1446,7 +1478,9 @@ zabbix_export:
               snmp_oid: '1.3.6.1.4.1.19746.1.2.2.1.1.2.{#SNMPINDEX}'
               key: 'dell.dd.nvram.PCIErrorCount[nvramPCIErrorCount.{#SNMPINDEX}]'
               trends: '0'
-              description: 'DATA-DOMAIN-MIB::nvramPCIErrorCount'
+              description: |
+                DATA-DOMAIN-MIB::nvramPCIErrorCount
+                Number of PCI Errors Encountered on NVRAM Card.
               preprocessing:
                 - type: DISCARD_UNCHANGED_HEARTBEAT
                   parameters:
@@ -1538,7 +1572,9 @@ zabbix_export:
               snmp_oid: '1.3.6.1.4.1.19746.1.1.1.1.1.1.4.{#SNMPINDEX}'
               key: 'dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}]'
               trends: '0'
-              description: 'MIB: DATA-DOMAIN-MIB::powerModuleStatus'
+              description: |
+                MIB: DATA-DOMAIN-MIB::powerModuleStatus
+                Current enclosure Power Module status.
               valuemap:
                 name: 'DATA-DOMAIN-MIB::powerModuleStatus'
               preprocessing:
