@@ -1,6 +1,6 @@
 This template is for Zabbix version: 7.0
 
-# Zabbix Template: DELL PowerProtect DataDomain SNMP
+# Zabbix Template: DELL PowerProtect DataDomain by SNMP
 
 ## Overview
 
