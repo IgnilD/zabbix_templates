@@ -23,6 +23,9 @@ These macros allow customization of thresholds and discovery filters. You can ov
 
 | Name | Description | Default Value |
 |------|-------------|---------------|
+| `{$CLOUD.UNIT.STATUS.CRIT:"disconnected"}` | <p>The critical value of the Cloud Unit state for trigger expression.</p> | `4` |
+| `{$CLOUD.UNIT.STATUS.CRIT:"error"}` | <p>The critical value of the Cloud Unit state for trigger expression.</p> | `5` |
+| `{$CLOUD.UNIT.STATUS.OK}` | <p>The OK status of the Cloud Unit for trigger expression.</p> | `1` |
 | `{$DISK.STATUS.CRIT:"absent"}` | <p>The critical value of the Disk state for trigger expression.</p> | `3` |
 | `{$DISK.STATUS.CRIT:"failed"}` | <p>The critical value of the Disk state for trigger expression.</p> | `4` |
 | `{$DISK.STATUS.CRIT:"unknown"}` | <p>The critical value of the Disk state for trigger expression.</p> | `2` |
@@ -68,6 +71,7 @@ These macros allow customization of thresholds and discovery filters. You can ov
 |------|-------------|------|-----|-----------------|
 | DataDomain: DDBoost Backup Connections | DATA-DOMAIN-MIB::ddboostStatsBackupConn<br>Number of Backup connections. | SNMP agent | dell.dd.boost.backup.con[ddboostStatsBackupConn] | Units: none<br>Tag: component=charts |
 | DataDomain: DDBoost Restore Connections | DATA-DOMAIN-MIB::ddboostStatsRestoreConn<br>Number of Restore connections. | SNMP agent | dell.dd.boost.restore.con[ddboostStatsRestoreConn] | Units: none<br>Tag: component=charts |
+| DataDomain: Cloud SNMP walk | Raw SNMP walk for cloud discovery | SNMP agent | dell.dd.cloud.snmp.walk | Update: 1h<br>Tag: component=raw |
 | DataDomain: File System Status Message | DATA-DOMAIN-MIB::fileSystemStatusMessage | SNMP agent | dell.dd.fs.status.message | Value type: Text<br>Discard unchanged (1d)<br>Tag: component=filesystem |
 | DataDomain: File System Status | DATA-DOMAIN-MIB::fileSystemStatus | SNMP agent | dell.dd.fs.status[fileSystemStatus] | Valuemap: DATA-DOMAIN-MIB::fileSystemStatus<br>Discard unchanged (1d)<br>Tag: component=filesystem |
 | DataDomain: CIFS operations rate | DATA-DOMAIN-MIB::cifsOpsPerSecond<br>Number of CIFS Operations performed per second. | SNMP agent | dell.dd.sys.cifs.ops[cifsOpsPerSecond] | Units: ops<br>Tag: component=charts |
@@ -104,7 +108,7 @@ These macros allow customization of thresholds and discovery filters. You can ov
 
 ## Discovery Rules
 
-The template uses Low-Level Discovery (LLD) to automatically create items and triggers for dynamic components.
+The template uses Low-Level Discovery (LLD) to automatically discover and monitor dynamic components.
 
 ### LLD rule DDBoost Connections discovery
 
@@ -122,6 +126,28 @@ The template uses Low-Level Discovery (LLD) to automatically create items and tr
 
 (No trigger prototypes)
 
+### LLD rule Cloud discovery
+
+| Name | Description | Type | Key and additional info |
+|------|-------------|------|-------------------------|
+| Cloud discovery | DATA-DOMAIN-MIB::cloudUnitName<br>DATA-DOMAIN-MIB::cloudProfileName | Dependent | cloud.discovery<br>Update: 0 (dependent)<br>Master item: dell.dd.cloud.snmp.walk<br>Preprocessing: SNMP walk to JSON + Discard unchanged (1d) |
+
+#### Item prototypes for Cloud discovery
+
+| Name | Description | Type | Key and additional info |
+|------|-------------|------|-------------------------|
+| DataDomain: Cloud profile "{#CLOUDPROFILENAME}" provider | DATA-DOMAIN-MIB::cloudProfileProvider<br>The cloud profile provider type | Dependent | dell.dd.cloud.profile.provider["{#CLOUDPROFILENAME}"]<br>Valuemap: cloudProfileProvider<br>Tags: cloud_profile={#CLOUDPROFILENAME}, cloud_unit={#CLOUDUNITNAME}, component=cloud |
+| DataDomain: Cloud profile "{#CLOUDPROFILENAME}" region | DATA-DOMAIN-MIB::cloudProfileRegion<br>The cloud profile provider region. | Dependent | dell.dd.cloud.profile.region["{#CLOUDPROFILENAME}"]<br>Valuemap: cloudProfileRegion<br>Tags: cloud_profile={#CLOUDPROFILENAME}, cloud_unit={#CLOUDUNITNAME}, component=cloud |
+| DataDomain: Cloud unit "{#CLOUDUNITNAME}" status | DATA-DOMAIN-MIB::cloudUnitStatus<br>The cloud unit state. | Dependent | dell.dd.cloud.unit.status["{#CLOUDUNITNAME}"]<br>Valuemap: cloudUnitStatus<br>Tags: cloud_profile={#CLOUDPROFILENAME}, cloud_unit={#CLOUDUNITNAME}, component=cloud |
+
+#### Trigger prototypes for Cloud discovery
+
+| Name | Description | Expression | Severity | Dependencies and additional info |
+|------|-------------|------------|----------|---------------------------------|
+| Cloud profile "{#CLOUDPROFILENAME}" change region | Please check the cloud profile region. | change(/DELL PowerProtect DataDomain by SNMP/dell.dd.cloud.profile.region["{#CLOUDPROFILENAME}"])<>0 | Information | Manual close: YES<br>Tag: scope=notify |
+| Cloud unit "{#CLOUDUNITNAME}" change state | Please check the cloud unit state. | last(/DELL PowerProtect DataDomain by SNMP/dell.dd.cloud.unit.status["{#CLOUDUNITNAME}"])<>{$CLOUD.UNIT.STATUS.OK} | Information | Manual close: YES<br>Dependency: Cloud unit "{#CLOUDUNITNAME}" is in critical state<br>Tags: scope=availability, notify |
+| Cloud unit "{#CLOUDUNITNAME}" is in critical state | Please check the cloud unit state. | last(/DELL PowerProtect DataDomain by SNMP/dell.dd.cloud.unit.status["{#CLOUDUNITNAME}"])={$CLOUD.UNIT.STATUS.CRIT:"disconnected"} or last(/DELL PowerProtect DataDomain by SNMP/dell.dd.cloud.unit.status["{#CLOUDUNITNAME}"])={$CLOUD.UNIT.STATUS.CRIT:"error"} | Average | Manual close: YES<br>Tag: scope=availability |
+
 ### LLD rule Disk discovery
 
 | Name | Description | Type | Key and additional info |
@@ -136,14 +162,14 @@ The template uses Low-Level Discovery (LLD) to automatically create items and tr
 | DataDomain: Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} Firmware Version | DATA-DOMAIN-MIB::diskFirmwareVersion<br>Firmware version of the disk. | SNMP agent | dell.dd.disk.fversion[diskFirmwareVersion.{#SNMPINDEX}]<br>Update: 1h<br>Value type: Char<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=disk, disk_enclosure={#DISK_ENCLOSUREID}, enclosure_id={#DISK_ENCLOSUREID} |
 | DataDomain: Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} model | DATA-DOMAIN-MIB::diskModel<br>Manufacture and model of the disk. | SNMP agent | dell.dd.disk.model[diskModel.{#SNMPINDEX}]<br>Update: 1h<br>Value type: Char<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=disk, disk_enclosure={#DISK_ENCLOSUREID}, enclosure_id={#DISK_ENCLOSUREID} |
 | DataDomain: Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} Serial Number | DATA-DOMAIN-MIB::diskSerialNumber<br>Serial Number of the disk. | SNMP agent | dell.dd.disk.sn[diskSerialNumber.{#SNMPINDEX}]<br>Update: 1h<br>Value type: Char<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=disk, disk_enclosure={#DISK_ENCLOSUREID}, enclosure_id={#DISK_ENCLOSUREID} |
-| DataDomain: Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} state | DATA-DOMAIN-MIB::diskPropState<br>Current State of the disk | SNMP agent | dell.dd.disk.state[diskPropState.{#SNMPINDEX}]<br>Valuemap: DATA-DOMAIN-MIB::diskPropState<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=disk, disk_enclosure={#DISK_ENCLOSUREID}, enclosure_id={#DISK_ENCLOSUREID} |
+| DataDomain: Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} state | DATA-DOMAIN-MIB::diskPropState<br>Current State of the disk | SNMP agent | dell.dd.disk.state[diskPropState.{#SNMPINDEX}]<br>Valuemap: diskPropState<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=disk, disk_enclosure={#DISK_ENCLOSUREID}, enclosure_id={#DISK_ENCLOSUREID} |
 
 #### Trigger prototypes for Disk discovery
 
 | Name | Description | Expression | Severity | Dependencies and additional info |
 |------|-------------|------------|----------|---------------------------------|
-| Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} is in critical state | Please check the disk state. | last(/DELL PowerProtect DataDomain SNMP/dell.dd.disk.state[diskPropState.{#SNMPINDEX}])={$DISK.STATUS.CRIT:"absent"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.disk.state[diskPropState.{#SNMPINDEX}])={$DISK.STATUS.CRIT:"failed"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.disk.state[diskPropState.{#SNMPINDEX}])={$DISK.STATUS.CRIT:"unknown"} | Average | Manual close: YES<br>Tag: scope=availability |
-| Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} make reconstruction | Disk change make reconstruction. | last(/DELL PowerProtect DataDomain SNMP/dell.dd.disk.state[diskPropState.{#SNMPINDEX}])={$DISK.STATUS.INFO:"copyReconstruction"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.disk.state[diskPropState.{#SNMPINDEX}])={$DISK.STATUS.INFO:"raidReconstruction"} | Information | Manual close: YES<br>Tag: scope=notify |
+| Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} is in critical state | Please check the disk state. | last(/DELL PowerProtect DataDomain by SNMP/dell.dd.disk.state[diskPropState.{#SNMPINDEX}])={$DISK.STATUS.CRIT:"absent"} or last(/DELL PowerProtect DataDomain by SNMP/dell.dd.disk.state[diskPropState.{#SNMPINDEX}])={$DISK.STATUS.CRIT:"failed"} or last(/DELL PowerProtect DataDomain by SNMP/dell.dd.disk.state[diskPropState.{#SNMPINDEX}])={$DISK.STATUS.CRIT:"unknown"} | Average | Manual close: YES<br>Tag: scope=availability |
+| Disk {#DISK_INDEX} of Enclosure {#DISK_ENCLOSUREID} make reconstruction | Disk change make reconstruction. | last(/DELL PowerProtect DataDomain by SNMP/dell.dd.disk.state[diskPropState.{#SNMPINDEX}])={$DISK.STATUS.INFO:"copyReconstruction"} or last(/DELL PowerProtect DataDomain by SNMP/dell.dd.disk.state[diskPropState.{#SNMPINDEX}])={$DISK.STATUS.INFO:"raidReconstruction"} | Information | Manual close: YES<br>Tag: scope=notify |
 
 ### LLD rule Enclosure Discovery
 
@@ -171,14 +197,14 @@ The template uses Low-Level Discovery (LLD) to automatically create items and tr
 
 | Name | Description | Type | Key and additional info |
 |------|-------------|------|-------------------------|
-| DataDomain: {#FAN_DESCR} of Enclosure {#FAN_ENCLOSUREID} Speed Level | DATA-DOMAIN-MIB::fanLevel<br>Current run level of fan. | SNMP agent | dell.dd.fan.level[fanLevel.{#SNMPINDEX}]<br>Valuemap: DATA-DOMAIN-MIB::fanLevel<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=fan, enclosure_id={#FAN_ENCLOSUREID}, fan_enclosure={#FAN_ENCLOSUREID} |
-| DataDomain: {#FAN_DESCR} of Enclosure {#FAN_ENCLOSUREID} Status | DATA-DOMAIN-MIB::fanStatus<br>Current status of the fan. | SNMP agent | dell.dd.fan.status[fanStatus.{#SNMPINDEX}]<br>Valuemap: DATA-DOMAIN-MIB::fanStatus<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=fan, enclosure_id={#FAN_ENCLOSUREID}, fan_enclosure={#FAN_ENCLOSUREID} |
+| DataDomain: {#FAN_DESCR} of Enclosure {#FAN_ENCLOSUREID} Speed Level | DATA-DOMAIN-MIB::fanLevel<br>Current run level of fan. | SNMP agent | dell.dd.fan.level[fanLevel.{#SNMPINDEX}]<br>Valuemap: fanLevel<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=fan, enclosure_id={#FAN_ENCLOSUREID}, fan_enclosure={#FAN_ENCLOSUREID} |
+| DataDomain: {#FAN_DESCR} of Enclosure {#FAN_ENCLOSUREID} Status | DATA-DOMAIN-MIB::fanStatus<br>Current status of the fan. | SNMP agent | dell.dd.fan.status[fanStatus.{#SNMPINDEX}]<br>Valuemap: fanStatus<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=fan, enclosure_id={#FAN_ENCLOSUREID}, fan_enclosure={#FAN_ENCLOSUREID} |
 
 #### Trigger prototypes for FAN discovery
 
 | Name | Description | Expression | Severity | Dependencies and additional info |
 |------|-------------|------------|----------|---------------------------------|
-| {#FAN_DESCR} of Enclosure {#FAN_ENCLOSUREID} is in critical state | Please check the fan unit. | last(/DELL PowerProtect DataDomain SNMP/dell.dd.fan.status[fanStatus.{#SNMPINDEX}])={$FAN.STATUS.CRIT:"fail"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.fan.status[fanStatus.{#SNMPINDEX}])={$FAN.STATUS.CRIT:"notfound"} | Average | Manual close: YES<br>Tag: scope=availability |
+| {#FAN_DESCR} of Enclosure {#FAN_ENCLOSUREID} is in critical state | Please check the fan unit. | last(/DELL PowerProtect DataDomain by SNMP/dell.dd.fan.status[fanStatus.{#SNMPINDEX}])={$FAN.STATUS.CRIT:"fail"} or last(/DELL PowerProtect DataDomain by SNMP/dell.dd.fan.status[fanStatus.{#SNMPINDEX}])={$FAN.STATUS.CRIT:"notfound"} | Average | Manual close: YES<br>Tag: scope=availability |
 
 ### LLD rule FS discovery
 
@@ -190,47 +216,47 @@ The template uses Low-Level Discovery (LLD) to automatically create items and tr
 
 | Name | Description | Type | Key and additional info |
 |------|-------------|------|-------------------------|
-| DataDomain: {#FS_NAME} of {#FS_TIER} space available | DATA-DOMAIN-MIB::fileSystemSpaceAvail<br>Amount of available space within the file system resource in gigabytes. | SNMP agent | dell.dd.fs.space.avail[fileSystemSpaceAvail.{#SNMPINDEX}]<br>Units: B<br>Preprocessing: Multiplier ×1073741824<br>Tags: component=filesystem, filesystem_name={#FS_NAME}, filesystem_tier={#FS_TIER} |
-| DataDomain: {#FS_NAME} of {#FS_TIER} space cleanable | DATA-DOMAIN-MIB::fileSystemSpaceCleanable<br>Amount of cleanable space within the file system resource in gigabytes. | SNMP agent | dell.dd.fs.space.cleanable[fileSystemSpaceCleanable.{#SNMPINDEX}]<br>Units: B<br>Preprocessing: Multiplier ×1073741824<br>Tags: component=filesystem, filesystem_name={#FS_NAME}, filesystem_tier={#FS_TIER} |
-| DataDomain: {#FS_NAME} of {#FS_TIER} space size | DATA-DOMAIN-MIB::fileSystemSpaceSize<br>Size of the file system resource in gigabytes. | SNMP agent | dell.dd.fs.space.size[fileSystemSpaceSize.{#SNMPINDEX}]<br>Units: B<br>Preprocessing: Multiplier ×1073741824<br>Tags: component=filesystem, filesystem_name={#FS_NAME}, filesystem_tier={#FS_TIER} |
-| DataDomain: {#FS_NAME} of {#FS_TIER} space used in % | DATA-DOMAIN-MIB::fileSystemPercentUsed<br>Percentage of used space within the file system resource. | SNMP agent | dell.dd.fs.space.used.perc[fileSystemPercentUsed.{#SNMPINDEX}]<br>Units: %<br>Tags: component=filesystem, filesystem_name={#FS_NAME}, filesystem_tier={#FS_TIER} |
-| DataDomain: {#FS_NAME} of {#FS_TIER} space used | DATA-DOMAIN-MIB::fileSystemSpaceUsed<br>Amount of used space within the file system resource in gigabytes. | SNMP agent | dell.dd.fs.space.used[fileSystemSpaceUsed.{#SNMPINDEX}]<br>Units: B<br>Preprocessing: Multiplier ×1073741824<br>Tags: component=filesystem, filesystem_name={#FS_NAME}, filesystem_tier={#FS_TIER} |
+| DataDomain: {#FS_NAME} of {#FS_TIER} space available | DATA-DOMAIN-MIB::fileSystemSpaceAvail<br>Amount of available space (GB → B) | SNMP agent | dell.dd.fs.space.avail[fileSystemSpaceAvail.{#SNMPINDEX}]<br>Units: B<br>Multiplier: ×1073741824<br>Tags: component=filesystem, filesystem_name={#FS_NAME}, filesystem_tier={#FS_TIER} |
+| DataDomain: {#FS_NAME} of {#FS_TIER} space cleanable | DATA-DOMAIN-MIB::fileSystemSpaceCleanable<br>Amount of cleanable space (GB → B) | SNMP agent | dell.dd.fs.space.cleanable[fileSystemSpaceCleanable.{#SNMPINDEX}]<br>Units: B<br>Multiplier: ×1073741824<br>Tags: component=filesystem, filesystem_name={#FS_NAME}, filesystem_tier={#FS_TIER} |
+| DataDomain: {#FS_NAME} of {#FS_TIER} space size | DATA-DOMAIN-MIB::fileSystemSpaceSize<br>Size of the file system (GB → B) | SNMP agent | dell.dd.fs.space.size[fileSystemSpaceSize.{#SNMPINDEX}]<br>Units: B<br>Multiplier: ×1073741824<br>Tags: component=filesystem, filesystem_name={#FS_NAME}, filesystem_tier={#FS_TIER} |
+| DataDomain: {#FS_NAME} of {#FS_TIER} space used in % | DATA-DOMAIN-MIB::fileSystemPercentUsed<br>Percentage of used space | SNMP agent | dell.dd.fs.space.used.perc[fileSystemPercentUsed.{#SNMPINDEX}]<br>Units: %<br>Tags: component=filesystem, filesystem_name={#FS_NAME}, filesystem_tier={#FS_TIER} |
+| DataDomain: {#FS_NAME} of {#FS_TIER} space used | DATA-DOMAIN-MIB::fileSystemSpaceUsed<br>Amount of used space (GB → B) | SNMP agent | dell.dd.fs.space.used[fileSystemSpaceUsed.{#SNMPINDEX}]<br>Units: B<br>Multiplier: ×1073741824<br>Tags: component=filesystem, filesystem_name={#FS_NAME}, filesystem_tier={#FS_TIER} |
 
 #### Trigger prototypes for FS discovery
 
 | Name | Description | Expression | Severity | Dependencies and additional info |
 |------|-------------|------------|----------|---------------------------------|
-| PowerProtect DataDomain: {#FS_NAME} of {#FS_TIER} Tier space is low | Current value: {ITEM.LASTVALUE1} | max(/DELL PowerProtect DataDomain SNMP/dell.dd.fs.space.used.perc[fileSystemPercentUsed.{#SNMPINDEX}],{$FS.SPACE.TIME})>{$FS.SPACE.WARN} | Warning | Manual close: YES<br>Dependency: space is too low<br>Tag: scope=availability |
-| PowerProtect DataDomain: {#FS_NAME} of {#FS_TIER} Tier space is too low | Current value: {ITEM.LASTVALUE1} | max(/DELL PowerProtect DataDomain SNMP/dell.dd.fs.space.used.perc[fileSystemPercentUsed.{#SNMPINDEX}],{$FS.SPACE.TIME})>{$FS.SPACE.CRIT} | High | Manual close: YES<br>Tag: scope=availability |
+| PowerProtect DataDomain: {#FS_NAME} of {#FS_TIER} Tier space is low | Current value: {ITEM.LASTVALUE1} | max(/DELL PowerProtect DataDomain by SNMP/dell.dd.fs.space.used.perc[fileSystemPercentUsed.{#SNMPINDEX}],{$FS.SPACE.TIME})>{$FS.SPACE.WARN} | Warning | Manual close: YES<br>Dependency: space is too low<br>Tag: scope=availability |
+| PowerProtect DataDomain: {#FS_NAME} of {#FS_TIER} Tier space is too low | Current value: {ITEM.LASTVALUE1} | max(/DELL PowerProtect DataDomain by SNMP/dell.dd.fs.space.used.perc[fileSystemPercentUsed.{#SNMPINDEX}],{$FS.SPACE.TIME})>{$FS.SPACE.CRIT} | High | Manual close: YES<br>Tag: scope=availability |
 
 ### LLD rule Network interfaces discovery
 
 | Name | Description | Type | Key and additional info |
 |------|-------------|------|-------------------------|
-| Network interfaces discovery | Discovering interfaces from IF-MIB. | SNMP agent | net.if.discovery<br>Update: 1h<br>Lifetime: 30d<br>Enabled lifetime type: Disable never<br>Advanced filter on admin/oper status, alias, descr, name, type |
+| Network interfaces discovery | Discovering interfaces from IF-MIB. | SNMP agent | net.if.discovery<br>Update: 1h<br>Lifetime: 30d<br>Advanced filters on admin/oper status, alias, descr, name, type |
 
 #### Item prototypes for Network interfaces discovery
 
 | Name | Description | Type | Key and additional info |
 |------|-------------|------|-------------------------|
-| DataDomain: Interface {#IFNAME}({#IFALIAS}) Inbound packets discarded | IF-MIB::ifInDiscards | SNMP agent | dell.dd.net.if.in.discards[ifInDiscards.{#SNMPINDEX}]<br>Update: 3m<br>Preprocessing: Change per second<br>Tags: component=network, interface={#IFNAME} |
-| DataDomain: Interface {#IFNAME}({#IFALIAS}) Inbound packets with errors | IF-MIB::ifInErrors | SNMP agent | dell.dd.net.if.in.errors[ifInErrors.{#SNMPINDEX}]<br>Update: 3m<br>Preprocessing: Change per second<br>Tags: component=network, interface={#IFNAME} |
-| DataDomain: Interface {#IFNAME}({#IFALIAS}) bits received | IF-MIB::ifHCInOctets (64-bit) | SNMP agent | dell.dd.net.if.in[ifHCInOctets.{#SNMPINDEX}]<br>Update: 3m<br>Units: bps<br>Preprocessing: Change per second, Multiplier ×8<br>Tags: component=network, interface={#IFNAME} |
-| DataDomain: Interface {#IFNAME}({#IFALIAS}) Outbound packets discarded | IF-MIB::ifOutDiscards | SNMP agent | dell.dd.net.if.out.discards[ifOutDiscards.{#SNMPINDEX}]<br>Update: 3m<br>Preprocessing: Change per second<br>Tags: component=network, interface={#IFNAME} |
-| DataDomain: Interface {#IFNAME}({#IFALIAS}) Outbound packets with errors | IF-MIB::ifOutErrors | SNMP agent | dell.dd.net.if.out.errors[ifOutErrors.{#SNMPINDEX}]<br>Update: 3m<br>Preprocessing: Change per second<br>Tags: component=network, interface={#IFNAME} |
-| DataDomain: Interface {#IFNAME}({#IFALIAS}) bits sent | IF-MIB::ifHCOutOctets (64-bit) | SNMP agent | dell.dd.net.if.out[ifHCOutOctets.{#SNMPINDEX}]<br>Update: 3m<br>Units: bps<br>Preprocessing: Change per second, Multiplier ×8<br>Tags: component=network, interface={#IFNAME} |
-| DataDomain: Interface {#IFNAME}({#IFALIAS}) Speed | IF-MIB::ifHighSpeed | SNMP agent | dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}]<br>Update: 5m<br>Units: bps<br>Preprocessing: Multiplier ×1000000, Discard unchanged with heartbeat 1h<br>Tags: component=network, interface={#IFNAME} |
-| DataDomain: Interface {#IFNAME}({#IFALIAS}) Operational status | IF-MIB::ifOperStatus | SNMP agent | dell.dd.net.if.status[ifOperStatus.{#SNMPINDEX}]<br>Valuemap: IF-MIB::ifOperStatus<br>Tags: component=network, interface={#IFNAME} |
-| DataDomain: Interface {#IFNAME}({#IFALIAS}) Interface type | IF-MIB::ifType | SNMP agent | dell.dd.net.if.type[ifType.{#SNMPINDEX}]<br>Update: 3m<br>Valuemap: IF-MIB::ifType<br>Preprocessing: Discard unchanged with heartbeat 1d<br>Tags: component=network, interface={#IFNAME} |
+| DataDomain: Interface {#IFNAME}({#IFALIAS}) Inbound packets discarded | IF-MIB::ifInDiscards | SNMP agent | dell.dd.net.if.in.discards[ifInDiscards.{#SNMPINDEX}]<br>Update: 3m<br>Change per second<br>Tags: component=network, interface={#IFNAME} |
+| DataDomain: Interface {#IFNAME}({#IFALIAS}) Inbound packets with errors | IF-MIB::ifInErrors | SNMP agent | dell.dd.net.if.in.errors[ifInErrors.{#SNMPINDEX}]<br>Update: 3m<br>Change per second<br>Tags: component=network, interface={#IFNAME} |
+| DataDomain: Interface {#IFNAME}({#IFALIAS}) bits received | IF-MIB::ifHCInOctets | SNMP agent | dell.dd.net.if.in[ifHCInOctets.{#SNMPINDEX}]<br>Update: 3m<br>Units: bps<br>Change per second ×8<br>Tags: component=network, interface={#IFNAME} |
+| DataDomain: Interface {#IFNAME}({#IFALIAS}) Outbound packets discarded | IF-MIB::ifOutDiscards | SNMP agent | dell.dd.net.if.out.discards[ifOutDiscards.{#SNMPINDEX}]<br>Update: 3m<br>Change per second<br>Tags: component=network, interface={#IFNAME} |
+| DataDomain: Interface {#IFNAME}({#IFALIAS}) Outbound packets with errors | IF-MIB::ifOutErrors | SNMP agent | dell.dd.net.if.out.errors[ifOutErrors.{#SNMPINDEX}]<br>Update: 3m<br>Change per second<br>Tags: component=network, interface={#IFNAME} |
+| DataDomain: Interface {#IFNAME}({#IFALIAS}) bits sent | IF-MIB::ifHCOutOctets | SNMP agent | dell.dd.net.if.out[ifHCOutOctets.{#SNMPINDEX}]<br>Update: 3m<br>Units: bps<br>Change per second ×8<br>Tags: component=network, interface={#IFNAME} |
+| DataDomain: Interface {#IFNAME}({#IFALIAS}) Speed | IF-MIB::ifHighSpeed | SNMP agent | dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}]<br>Update: 5m<br>Units: bps<br>Multiplier: ×1000000<br>Discard unchanged 1h<br>Tags: component=network, interface={#IFNAME} |
+| DataDomain: Interface {#IFNAME}({#IFALIAS}) Operational status | IF-MIB::ifOperStatus | SNMP agent | dell.dd.net.if.status[ifOperStatus.{#SNMPINDEX}]<br>Valuemap: ifOperStatus<br>Tags: component=network, interface={#IFNAME} |
+| DataDomain: Interface {#IFNAME}({#IFALIAS}) Interface type | IF-MIB::ifType | SNMP agent | dell.dd.net.if.type[ifType.{#SNMPINDEX}]<br>Update: 3m<br>Valuemap: ifType<br>Discard unchanged 1d<br>Tags: component=network, interface={#IFNAME} |
 
 #### Trigger prototypes for Network interfaces discovery
 
 | Name | Description | Expression | Severity | Dependencies and additional info |
 |------|-------------|------------|----------|---------------------------------|
-| Interface {#IFNAME}({#IFALIAS}): Link down | This trigger expression works as follows:<br>1. Can be triggered if operations status is down.<br>2. {$IFCONTROL:"{#IFNAME}"}=1 - user can redefine Context macro to value - 0. That marks this interface as not important.<br>3. diff()=1 - trigger fires only if operational status was up(1) sometime before.<br>WARNING: if closed manually - won't fire again on next poll. | {$IFCONTROL:"{#IFNAME}"}=1 and last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.status[ifOperStatus.{#SNMPINDEX}])=2 and (last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.status[ifOperStatus.{#SNMPINDEX}],#1)<>last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.status[ifOperStatus.{#SNMPINDEX}],#2)) | Average | Recovery expression: last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.status[ifOperStatus.{#SNMPINDEX}])<>2 or {$IFCONTROL:"{#IFNAME}"}=0<br>Manual close: YES<br>Tag: scope=availability |
-| Interface {#IFNAME}({#IFALIAS}): Ethernet has changed to lower speed than it was before | This Ethernet connection has transitioned down from its known maximum speed. This might be a sign of autonegotiation issues. Ack to close. | change(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}])<0 and last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}])>0 and (last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.type[ifType.{#SNMPINDEX}])=6 or last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.type[ifType.{#SNMPINDEX}])=7 or last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.type[ifType.{#SNMPINDEX}])=11 or last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.type[ifType.{#SNMPINDEX}])=62 or last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.type[ifType.{#SNMPINDEX}])=69 or last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.type[ifType.{#SNMPINDEX}])=117) and (last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.status[ifOperStatus.{#SNMPINDEX}])<>2) | Information | Recovery expression: (change(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}])>0 and last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}],#2)>0) or (last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.status[ifOperStatus.{#SNMPINDEX}])=2)<br>Manual close: YES<br>Dependency: Interface {#IFNAME}({#IFALIAS}): Link down<br>Tag: scope=performance |
-| Interface {#IFNAME}({#IFALIAS}): High bandwidth usage | The network interface utilization is close to its estimated maximum bandwidth. | (avg(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.in[ifHCInOctets.{#SNMPINDEX}],15m)>({$IF.UTIL.MAX:"{#IFNAME}"}/100)*last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}]) or avg(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.out[ifHCOutOctets.{#SNMPINDEX}],15m)>({$IF.UTIL.MAX:"{#IFNAME}"}/100)*last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}])) and last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}])>0 | Warning | Recovery expression: avg(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.in[ifHCInOctets.{#SNMPINDEX}],15m)<(({$IF.UTIL.MAX:"{#IFNAME}"}-3)/100)*last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}]) and avg(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.out[ifHCOutOctets.{#SNMPINDEX}],15m)<(({$IF.UTIL.MAX:"{#IFNAME}"}-3)/100)*last(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}])<br>Manual close: YES<br>Dependency: Interface {#IFNAME}({#IFALIAS}): Link down<br>Tag: scope=performance |
-| Interface {#IFNAME}({#IFALIAS}): High error rate | Recovers when below 80% of {$IF.ERRORS.WARN:"{#IFNAME}"} threshold | min(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.in.errors[ifInErrors.{#SNMPINDEX}],5m)>{$IF.ERRORS.WARN:"{#IFNAME}"} or min(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.out.errors[ifOutErrors.{#SNMPINDEX}],5m)>{$IF.ERRORS.WARN:"{#IFNAME}"} | Warning | Recovery expression: max(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.in.errors[ifInErrors.{#SNMPINDEX}],5m)<{$IF.ERRORS.WARN:"{#IFNAME}"}*0.8 and max(/DELL PowerProtect DataDomain SNMP/dell.dd.net.if.out.errors[ifOutErrors.{#SNMPINDEX}],5m)<{$IF.ERRORS.WARN:"{#IFNAME}"}*0.8<br>Manual close: YES<br>Dependency: Interface {#IFNAME}({#IFALIAS}): Link down<br>Tags: scope=availability, performance |
+| Interface {#IFNAME}({#IFALIAS}): Link down | This trigger expression works as follows:<br>1. Can be triggered if operations status is down.<br>2. {$IFCONTROL:"{#IFNAME}"}=1 - user can redefine Context macro to value - 0.<br>3. diff()=1 - trigger fires only if operational status was up sometime before.<br>WARNING: if closed manually - won't fire again on next poll. | {$IFCONTROL:"{#IFNAME}"}=1 and last(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.status[ifOperStatus.{#SNMPINDEX}])=2 and (last(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.status[ifOperStatus.{#SNMPINDEX}],#1)<>last(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.status[ifOperStatus.{#SNMPINDEX}],#2)) | Average | Recovery expression: last(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.status[ifOperStatus.{#SNMPINDEX}])<>2 or {$IFCONTROL:"{#IFNAME}"}=0<br>Manual close: YES<br>Tag: scope=availability |
+| Interface {#IFNAME}({#IFALIAS}): Ethernet has changed to lower speed than it was before | This Ethernet connection has transitioned down from its known maximum speed. This might be a sign of autonegotiation issues. Ack to close. | change(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}])<0 and last(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}])>0 and (last(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.type[ifType.{#SNMPINDEX}])=6 or last(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.type[ifType.{#SNMPINDEX}])=7 or last(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.type[ifType.{#SNMPINDEX}])=11 or last(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.type[ifType.{#SNMPINDEX}])=62 or last(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.type[ifType.{#SNMPINDEX}])=69 or last(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.type[ifType.{#SNMPINDEX}])=117) and (last(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.status[ifOperStatus.{#SNMPINDEX}])<>2) | Information | Recovery expression: (change(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}])>0 and last(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}],#2)>0) or (last(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.status[ifOperStatus.{#SNMPINDEX}])=2)<br>Manual close: YES<br>Dependency: Link down<br>Tag: scope=performance |
+| Interface {#IFNAME}({#IFALIAS}): High bandwidth usage | The network interface utilization is close to its estimated maximum bandwidth. | (avg(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.in[ifHCInOctets.{#SNMPINDEX}],15m)>({$IF.UTIL.MAX:"{#IFNAME}"}/100)*last(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}]) or avg(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.out[ifHCOutOctets.{#SNMPINDEX}],15m)>({$IF.UTIL.MAX:"{#IFNAME}"}/100)*last(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}])) and last(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.speed[ifHighSpeed.{#SNMPINDEX}])>0 | Warning | Recovery expression: avg(in,15m)<(({$IF.UTIL.MAX:"{#IFNAME}"}-3)/100)*speed and avg(out,15m)<(({$IF.UTIL.MAX:"{#IFNAME}"}-3)/100)*speed<br>Manual close: YES<br>Dependency: Link down<br>Tag: scope=performance |
+| Interface {#IFNAME}({#IFALIAS}): High error rate | Recovers when below 80% of threshold | min(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.in.errors[ifInErrors.{#SNMPINDEX}],5m)>{$IF.ERRORS.WARN:"{#IFNAME}"} or min(/DELL PowerProtect DataDomain by SNMP/dell.dd.net.if.out.errors[ifOutErrors.{#SNMPINDEX}],5m)>{$IF.ERRORS.WARN:"{#IFNAME}"} | Warning | Recovery expression: max(in.errors,5m)<{$IF.ERRORS.WARN:"{#IFNAME}"}*0.8 and max(out.errors,5m)<{$IF.ERRORS.WARN:"{#IFNAME}"}*0.8<br>Manual close: YES<br>Dependency: Link down<br>Tags: scope=availability, performance |
 
 ### LLD rule NVRAM BBU Discovery
 
@@ -243,16 +269,16 @@ The template uses Low-Level Discovery (LLD) to automatically create items and tr
 | Name | Description | Type | Key and additional info |
 |------|-------------|------|-------------------------|
 | DataDomain: Battery Unit {#BBU_INDEX} Charge | DATA-DOMAIN-MIB::nvramBatteryCharge<br>NVRAM Battery charge percentage. | SNMP agent | dell.dd.nvram.bbu.charge[nvramBatteryCharge.{#SNMPINDEX}]<br>Units: %<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: battery_id={#BBU_INDEX}, component=bbu, component=nvram |
-| DataDomain: Battery Unit {#BBU_INDEX} Status | DATA-DOMAIN-MIB::nvramBatteryStatus<br>NVRAM Battery Status. | SNMP agent | dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}]<br>Valuemap: DATA-DOMAIN-MIB::nvramBatteryStatus<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: battery_id={#BBU_INDEX}, component=bbu, component=nvram |
+| DataDomain: Battery Unit {#BBU_INDEX} Status | DATA-DOMAIN-MIB::nvramBatteryStatus<br>NVRAM Battery Status. | SNMP agent | dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}]<br>Valuemap: nvramBatteryStatus<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: battery_id={#BBU_INDEX}, component=bbu, component=nvram |
 
 #### Trigger prototypes for NVRAM BBU Discovery
 
 | Name | Description | Expression | Severity | Dependencies and additional info |
 |------|-------------|------------|----------|---------------------------------|
-| Battery Unit {#BBU_INDEX} have low charge |  | last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.bbu.charge[nvramBatteryCharge.{#SNMPINDEX}])<{$NVRAM.BATTERY.CHARGE.WARN} | Warning | Manual close: YES<br>Tag: scope=availability |
-| Battery Unit {#BBU_INDEX} is in critical state | Please check the device for faults. | last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}])={$NVRAM.BATTERY.STATUS.CRIT} | Average | Manual close: YES<br>Tag: scope=availability |
-| Battery Unit {#BBU_INDEX} is in warning state | Please check the device for faults. | last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}])={$NVRAM.BATTERY.STATUS.WARN:"disabled"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}])={$NVRAM.BATTERY.STATUS.WARN:"softdisabled"} | Warning | Manual close: YES<br>Dependency: Battery Unit {#BBU_INDEX} is in critical state<br>Tag: scope=availability |
-| Battery Unit {#BBU_INDEX} is not in optimal state | Please check the device for faults. | last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}])<>{$NVRAM.BATTERY.STATUS.OK} | Warning | Manual close: YES<br>Dependencies: critical state, warning state<br>Tag: scope=availability |
+| Battery Unit {#BBU_INDEX} have low charge |  | last(/DELL PowerProtect DataDomain by SNMP/dell.dd.nvram.bbu.charge[nvramBatteryCharge.{#SNMPINDEX}])<{$NVRAM.BATTERY.CHARGE.WARN} | Warning | Manual close: YES<br>Tag: scope=availability |
+| Battery Unit {#BBU_INDEX} is in critical state | Please check the device for faults. | last(/DELL PowerProtect DataDomain by SNMP/dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}])={$NVRAM.BATTERY.STATUS.CRIT} | Average | Manual close: YES<br>Tag: scope=availability |
+| Battery Unit {#BBU_INDEX} is in warning state | Please check the device for faults. | last(/DELL PowerProtect DataDomain by SNMP/dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}])={$NVRAM.BATTERY.STATUS.WARN:"disabled"} or last(/DELL PowerProtect DataDomain by SNMP/dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}])={$NVRAM.BATTERY.STATUS.WARN:"softdisabled"} | Warning | Manual close: YES<br>Dependency: critical state<br>Tag: scope=availability |
+| Battery Unit {#BBU_INDEX} is not in optimal state | Please check the device for faults. | last(/DELL PowerProtect DataDomain by SNMP/dell.dd.nvram.bbu.status[nvramBatteryStatus.{#SNMPINDEX}])<>{$NVRAM.BATTERY.STATUS.OK} | Warning | Manual close: YES<br>Dependencies: critical state, warning state<br>Tag: scope=availability |
 
 ### LLD rule NVRAM Discovery
 
@@ -264,16 +290,16 @@ The template uses Low-Level Discovery (LLD) to automatically create items and tr
 
 | Name | Description | Type | Key and additional info |
 |------|-------------|------|-------------------------|
-| DataDomain: NVRAM {#NVRAM_INDEX} total memory | DATA-DOMAIN-MIB::nvramHCMemorySize<br>The size of an NVRAM entity's memory in bytes. | SNMP agent | dell.dd.nvram.HCMemorySize[nvramHCMemorySize.{#SNMPINDEX}]<br>Units: B<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=nvram, nvram_id={#NVRAM_INDEX} |
-| DataDomain: NVRAM {#NVRAM_INDEX} Memory Errors | DATA-DOMAIN-MIB::nvramMemoryErrorCount<br>Number of Memory Errors Encountered on NVRAM Card. | SNMP agent | dell.dd.nvram.MemoryErrorCount[nvramMemoryErrorCount.{#SNMPINDEX}]<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=nvram, nvram_id={#NVRAM_INDEX} |
-| DataDomain: NVRAM {#NVRAM_INDEX} PCI Errors | DATA-DOMAIN-MIB::nvramPCIErrorCount<br>Number of PCI Errors Encountered on NVRAM Card. | SNMP agent | dell.dd.nvram.PCIErrorCount[nvramPCIErrorCount.{#SNMPINDEX}]<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=nvram, nvram_id={#NVRAM_INDEX} |
+| DataDomain: NVRAM {#NVRAM_INDEX} total memory | DATA-DOMAIN-MIB::nvramHCMemorySize<br>Size of NVRAM memory in bytes | SNMP agent | dell.dd.nvram.HCMemorySize[nvramHCMemorySize.{#SNMPINDEX}]<br>Units: B<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=nvram, nvram_id={#NVRAM_INDEX} |
+| DataDomain: NVRAM {#NVRAM_INDEX} Memory Errors | DATA-DOMAIN-MIB::nvramMemoryErrorCount<br>Number of memory errors | SNMP agent | dell.dd.nvram.MemoryErrorCount[nvramMemoryErrorCount.{#SNMPINDEX}]<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=nvram, nvram_id={#NVRAM_INDEX} |
+| DataDomain: NVRAM {#NVRAM_INDEX} PCI Errors | DATA-DOMAIN-MIB::nvramPCIErrorCount<br>Number of PCI errors | SNMP agent | dell.dd.nvram.PCIErrorCount[nvramPCIErrorCount.{#SNMPINDEX}]<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=nvram, nvram_id={#NVRAM_INDEX} |
 
 #### Trigger prototypes for NVRAM Discovery
 
 | Name | Description | Expression | Severity | Dependencies and additional info |
 |------|-------------|------------|----------|---------------------------------|
-| Memory Error on NVRAM {#NVRAM_INDEX} | Please check NVRAM | last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.MemoryErrorCount[nvramMemoryErrorCount.{#SNMPINDEX}])<>0 | Average | Manual close: YES<br>Tag: scope=availability |
-| PCI Error on NVRAM {#NVRAM_INDEX} | Please check NVRAM | last(/DELL PowerProtect DataDomain SNMP/dell.dd.nvram.PCIErrorCount[nvramPCIErrorCount.{#SNMPINDEX}])<>0 | Average | Manual close: YES<br>Tag: scope=availability |
+| Memory Error on NVRAM {#NVRAM_INDEX} | Please check NVRAM | last(/DELL PowerProtect DataDomain by SNMP/dell.dd.nvram.MemoryErrorCount[nvramMemoryErrorCount.{#SNMPINDEX}])<>0 | Average | Manual close: YES<br>Tag: scope=availability |
+| PCI Error on NVRAM {#NVRAM_INDEX} | Please check NVRAM | last(/DELL PowerProtect DataDomain by SNMP/dell.dd.nvram.PCIErrorCount[nvramPCIErrorCount.{#SNMPINDEX}])<>0 | Average | Manual close: YES<br>Tag: scope=availability |
 
 ### LLD rule Ports Discovery
 
@@ -291,7 +317,7 @@ The template uses Low-Level Discovery (LLD) to automatically create items and tr
 
 | Name | Description | Expression | Severity | Dependencies and additional info |
 |------|-------------|------------|----------|---------------------------------|
-| {#PORT} ({#PORT_TYPE}) Link Speed changed | Please check the port link. | change(/DELL PowerProtect DataDomain SNMP/dell.dd.port.link.speed[systemPortsLinkSpeed.{#SNMPINDEX}])<>0 or length(last(/DELL PowerProtect DataDomain SNMP/dell.dd.port.link.speed[systemPortsLinkSpeed.{#SNMPINDEX}]))=0 | Average | Manual close: YES<br>Tag: scope=availability |
+| {#PORT} ({#PORT_TYPE}) Link Speed changed | Please check the port link. | change(/DELL PowerProtect DataDomain by SNMP/dell.dd.port.link.speed[systemPortsLinkSpeed.{#SNMPINDEX}])<>0 or length(last(/DELL PowerProtect DataDomain by SNMP/dell.dd.port.link.speed[systemPortsLinkSpeed.{#SNMPINDEX}]))=0 | Average | Manual close: YES<br>Tag: scope=availability |
 
 ### LLD rule PSU Discovery
 
@@ -303,32 +329,31 @@ The template uses Low-Level Discovery (LLD) to automatically create items and tr
 
 | Name | Description | Type | Key and additional info |
 |------|-------------|------|-------------------------|
-| DataDomain: {#PSU_DESCR} of Enclosure {#PSU_ENCLOSUREID} status | DATA-DOMAIN-MIB::powerModuleStatus<br>Current enclosure Power Module status. | SNMP agent | dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}]<br>Valuemap: DATA-DOMAIN-MIB::powerModuleStatus<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=psu, enclosure_id={#PSU_ENCLOSUREID}, psu_enclosure={#PSU_ENCLOSUREID} |
+| DataDomain: {#PSU_DESCR} of Enclosure {#PSU_ENCLOSUREID} status | DATA-DOMAIN-MIB::powerModuleStatus<br>Current enclosure Power Module status. | SNMP agent | dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}]<br>Valuemap: powerModuleStatus<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=psu, enclosure_id={#PSU_ENCLOSUREID}, psu_enclosure={#PSU_ENCLOSUREID} |
 
 #### Trigger prototypes for PSU Discovery
 
 | Name | Description | Expression | Severity | Dependencies and additional info |
 |------|-------------|------------|----------|---------------------------------|
-| {#PSU_DESCR} of Enclosure {#PSU_ENCLOSUREID} is in critical state | Please check the power supply unit for errors. | last(/DELL PowerProtect DataDomain SNMP/dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}])={$PSU.STATUS.CRIT:"acnone"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}])={$PSU.STATUS.CRIT:"failed"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}])={$PSU.STATUS.CRIT:"faulty"} | Average | Manual close: YES |
-| {#PSU_DESCR} of Enclosure {#PSU_ENCLOSUREID} is in warning state | Please check the power supply unit for errors. | last(/DELL PowerProtect DataDomain SNMP/dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}])={$PSU.STATUS.WARN:"absent"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}])={$PSU.STATUS.WARN:"unknown"} | Warning | Manual close: YES |
+| {#PSU_DESCR} of Enclosure {#PSU_ENCLOSUREID} is in critical state | Please check the power supply unit for errors. | last(/DELL PowerProtect DataDomain by SNMP/dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}])={$PSU.STATUS.CRIT:"acnone"} or last(/DELL PowerProtect DataDomain by SNMP/dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}])={$PSU.STATUS.CRIT:"failed"} or last(/DELL PowerProtect DataDomain by SNMP/dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}])={$PSU.STATUS.CRIT:"faulty"} | Average | Manual close: YES |
+| {#PSU_DESCR} of Enclosure {#PSU_ENCLOSUREID} is in warning state | Please check the power supply unit for errors. | last(/DELL PowerProtect DataDomain by SNMP/dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}])={$PSU.STATUS.WARN:"absent"} or last(/DELL PowerProtect DataDomain by SNMP/dell.dd.psu.status[powerModuleStatus.{#SNMPINDEX}])={$PSU.STATUS.WARN:"unknown"} | Warning | Manual close: YES |
 
 ### LLD rule Temperature discovery
 
 | Name | Description | Type | Key and additional info |
 |------|-------------|------|-------------------------|
-| Temperature discovery | DATA-DOMAIN-MIB::tempEnclosureID<br>DATA-DOMAIN-MIB::tempSensorDescription | SNMP agent | temperature.discovery<br>Update: 10m<br>Filter on {$TEMP.SENSOR.ENCLOSURE.MATCHES}/NOT_MATCHES<br>Preprocessing: Discard unchanged with heartbeat 6h |
+| Temperature discovery | DATA-DOMAIN-MIB::tempEnclosureID<br>DATA-DOMAIN-MIB::tempSensorDescription | SNMP agent | temperature.discovery<br>Update: 10m<br>Filter: {$TEMP.SENSOR.ENCLOSURE.MATCHES}/NOT_MATCHES<br>Preprocessing: Discard unchanged with heartbeat 6h |
 
 #### Item prototypes for Temperature discovery
 
 | Name | Description | Type | Key and additional info |
 |------|-------------|------|-------------------------|
-| DataDomain: "{#TEMP_DESCR}" of Enclosure {#TEMP_ENCLOSUREID} status | DATA-DOMAIN-MIB::tempSensorStatus<br>Current status of the sensor. | SNMP agent | dell.dd.temp.status[tempSensorStatus.{#SNMPINDEX}]<br>Valuemap: DATA-DOMAIN-MIB::tempSensorStatus<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=temperature, enclosure_id={#TEMP_ENCLOSUREID}, temp_enclosure={#TEMP_ENCLOSUREID} |
+| DataDomain: "{#TEMP_DESCR}" of Enclosure {#TEMP_ENCLOSUREID} status | DATA-DOMAIN-MIB::tempSensorStatus<br>Current status of the sensor. | SNMP agent | dell.dd.temp.status[tempSensorStatus.{#SNMPINDEX}]<br>Valuemap: tempSensorStatus<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=temperature, enclosure_id={#TEMP_ENCLOSUREID}, temp_enclosure={#TEMP_ENCLOSUREID} |
 | DataDomain: "{#TEMP_DESCR}" of Enclosure {#TEMP_ENCLOSUREID} value | DATA-DOMAIN-MIB::tempSensorCurrentValue<br>Current Temperature Value of the sensor. | SNMP agent | dell.dd.temp.value[tempSensorCurrentValue.{#SNMPINDEX}]<br>Units: °C<br>Preprocessing: Discard unchanged with heartbeat 6h<br>Tags: component=temperature, enclosure_id={#TEMP_ENCLOSUREID}, temp_enclosure={#TEMP_ENCLOSUREID} |
 
 #### Trigger prototypes for Temperature discovery
 
 | Name | Description | Expression | Severity | Dependencies and additional info |
 |------|-------------|------------|----------|---------------------------------|
-| "{#TEMP_DESCR}" of Enclosure {#TEMP_ENCLOSUREID} is in critical status | Please check the device for faults. | last(/DELL PowerProtect DataDomain SNMP/dell.dd.temp.status[tempSensorStatus.{#SNMPINDEX}])={$TEMP.SENSOR.STATUS.CRIT:"overheatCritical"} or last(/DELL PowerProtect DataDomain SNMP/dell.dd.temp.status[tempSensorStatus.{#SNMPINDEX}])={$TEMP.SENSOR.STATUS.CRIT:"failed"} | Average | Manual close: YES<br>Tag: scope=availability |
-| "{#TEMP_DESCR}" of Enclosure {#TEMP_ENCLOSUREID} is not in optimal status | Please check the device for faults. | last(/DELL PowerProtect DataDomain SNMP/dell.dd.temp.status[tempSensorStatus.{#SNMPINDEX}])<>{$TEMP.SENSOR.STATUS.OK} | Warning | Manual close: YES<br>Dependency: critical status<br>Tag: scope=availability |
-
+| "{#TEMP_DESCR}" of Enclosure {#TEMP_ENCLOSUREID} is in critical status | Please check the device for faults. | last(/DELL PowerProtect DataDomain by SNMP/dell.dd.temp.status[tempSensorStatus.{#SNMPINDEX}])={$TEMP.SENSOR.STATUS.CRIT:"overheatCritical"} or last(/DELL PowerProtect DataDomain by SNMP/dell.dd.temp.status[tempSensorStatus.{#SNMPINDEX}])={$TEMP.SENSOR.STATUS.CRIT:"failed"} | Average | Manual close: YES<br>Tag: scope=availability |
+| "{#TEMP_DESCR}" of Enclosure {#TEMP_ENCLOSUREID} is not in optimal status | Please check the device for faults. | last(/DELL PowerProtect DataDomain by SNMP/dell.dd.temp.status[tempSensorStatus.{#SNMPINDEX}])<>{$TEMP.SENSOR.STATUS.OK} | Warning | Manual close: YES<br>Dependency: critical status<br>Tag: scope=availability |
