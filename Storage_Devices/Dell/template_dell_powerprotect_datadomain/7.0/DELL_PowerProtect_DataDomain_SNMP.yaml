@@ -60,6 +60,82 @@ zabbix_export:
           tags:
             - tag: component
               value: raw
+        - uuid: 6c6c9179ea37438ca7cf8643d396789d
+          name: 'Current alerts SNMP walk'
+          type: SNMP_AGENT
+          snmp_oid: 'walk[1.3.6.1.4.1.19746.1.4.1]'
+          key: dell.dd.current.alert.walk
+          history: 7d
+          value_type: TEXT
+          trends: '0'
+          description: 'Discovery of current alerts.'
+          preprocessing:
+            - type: JAVASCRIPT
+              parameters:
+                - |
+                  var lines = value.split('\n');
+                  var alerts = {};
+                  
+                  lines.forEach(function(line) {
+                      var m = line.match(/\.1\.1\.(\d+)\.(\d+)\s+=\s+STRING:\s+"?(.*?)"?$/);
+                      if (!m) return;
+                  
+                      var fieldId = m[1];   
+                      var index = m[2];     
+                      var val = m[3];
+                  
+                      if (!alerts[index]) alerts[index] = {};
+                  
+                      switch (fieldId) {
+                          case '2':
+                              alerts[index].timestamp = val;
+                              break;
+                          case '3':
+                              alerts[index].description = val;
+                              break;
+                          case '4':
+                              alerts[index].severity = val;
+                              break;
+                          case '5':
+                              alerts[index].id = val;
+                              break;
+                      }
+                  });
+                  
+                  var result = [];
+                  
+                  for (var idx in alerts) {
+                      var a = alerts[idx];
+                      if (a.severity && a.description && a.timestamp) {
+                          result.push(
+                              a.severity + " - " +
+                              a.description + " - " +
+                              a.timestamp
+                          );
+                      }
+                  }
+                  
+                  return result.join("\n");
+                  
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: alert
+          triggers:
+            - uuid: 42d1648194fb4aafa9fdc3e75b215285
+              expression: 'length(last(/DELL PowerProtect DataDomain by SNMP/dell.dd.current.alert.walk))<>0'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'nodata(/DELL PowerProtect DataDomain by SNMP/dell.dd.current.alert.walk,1h)=1 or length(last(/DELL PowerProtect DataDomain by SNMP/dell.dd.current.alert.walk))=0'
+              name: 'DataDomain: Current Alert'
+              opdata: 'Current Alerts: {ITEM.LASTVALUE1}'
+              priority: INFO
+              description: 'Current Alerts on PowerProtect DataDomain'
+              manual_close: 'YES'
+              tags:
+                - tag: scope
+                  value: availability
         - uuid: 02fbe02eba144dbf80029296e9e2e4e3
           name: 'DataDomain: File System Status Message'
           type: SNMP_AGENT
