@@ -1,0 +1,275 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+    - uuid: a571c0d144b14fd4a87a9d9b2aa9fcd6
+      name: Templates/Applications
+  templates:
+    - uuid: febde0c5ff9e4ff19df1cb517adebd87
+      template: 'DELL PowerProtect Data Manager by HTTP'
+      name: 'DELL PowerProtect Data Manager by HTTP'
+      groups:
+        - name: Templates/Applications
+      items:
+        - uuid: f7f91c90908d4be18d6fba7efb51b72d
+          name: 'PPDM: Active Alerts'
+          type: SCRIPT
+          key: dell.ppdm.alerts
+          delay: 5m
+          history: '0'
+          value_type: TEXT
+          trends: '0'
+          params: |
+            var base     = '{$API.URL}';
+            var username = '{$API.USERNAME}';
+            var password = '{$API.PASSWORD}';
+            
+            try {
+                // Step 1 - Login
+                var loginReq = new HttpRequest();
+                loginReq.addHeader('Content-Type: application/json');
+            
+                var loginResp = loginReq.post(
+                    base + '/api/v2/login',
+                    JSON.stringify({ username: username, password: password })
+                );
+            
+                var token = JSON.parse(loginResp).access_token;
+            
+                // Step 2 - Get unacknowledged alerts
+                var alertReq = new HttpRequest();
+                alertReq.addHeader('Content-Type: application/json');
+                alertReq.addHeader('Authorization: Bearer ' + token);
+            
+                var filter = 'acknowledgement.acknowledgeState%20eq%20%22UNACKNOWLEDGED%22';
+            
+                var alertResp = alertReq.get(
+                    base + '/api/v2/alerts?pageSize=100&filter=' + filter
+                );
+            
+                var data = JSON.parse(alertResp);
+                var alerts = data.content;
+            
+                // Count and format by severity
+                var critical      = 0;
+                var warning       = 0;
+                var informational = 0;
+            
+                var criticalList      = [];
+                var warningList       = [];
+                var informationalList = [];
+            
+                for (var i = 0; i < alerts.length; i++) {
+                    var sev  = alerts[i].severity.toUpperCase();
+                    var msg  = alerts[i].message;
+                    var time = alerts[i].postedTime;
+            
+                    var line = time + ' | ' + sev + ' | ' + msg;
+            
+                    if (sev === 'CRITICAL') {
+                        critical++;
+                        criticalList.push(line);
+                    } else if (sev === 'WARNING') {
+                        warning++;
+                        warningList.push(line);
+                    } else if (sev === 'INFORMATIONAL') {
+                        informational++;
+                        informationalList.push(line);
+                    }
+                }
+            
+                // Full summary sorted: critical first, then warning, then informational
+                var allFormatted = criticalList
+                    .concat(warningList)
+                    .concat(informationalList)
+                    .join('\n');
+            
+                return JSON.stringify({
+                    total: data.page.totalElements,
+                    critical: critical,
+                    warning: warning,
+                    informational: informational,
+                    critical_summary: criticalList.join('\n'),
+                    warning_summary: warningList.join('\n'),
+                    informational_summary: informationalList.join('\n'),
+                    full_summary: allFormatted
+                });
+            
+            } catch (e) {
+                throw 'PPDM script error: ' + e;
+            }
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          timeout: 30s
+          tags:
+            - tag: component
+              value: alert
+        - uuid: 9ae3682b6c27477e9d20b50c45125e08
+          name: 'PPDM: Critical Active Alerts'
+          type: DEPENDENT
+          key: dell.ppdm.critical.active.alerts
+          delay: '0'
+          value_type: TEXT
+          trends: '0'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.critical_summary
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          master_item:
+            key: dell.ppdm.alerts
+          tags:
+            - tag: component
+              value: alert
+          triggers:
+            - uuid: ea4caa9abecc4409b08576064da3cab2
+              expression: 'length(last(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.critical.active.alerts))<>0'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'nodata(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.critical.active.alerts,1h)=1 or length(last(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.critical.active.alerts))=0'
+              name: 'PPDM: New Active Critical Alerts'
+              priority: WARNING
+              description: 'Current critical Alerts on PowerProtect Data Manager'
+              manual_close: 'YES'
+              tags:
+                - tag: scope
+                  value: availability
+        - uuid: df05bbdfd4c04b1880a654db35aae71a
+          name: 'PPDM: Informational Active Alerts'
+          type: DEPENDENT
+          key: dell.ppdm.informational.active.alerts
+          delay: '0'
+          value_type: TEXT
+          trends: '0'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.informational_summary
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          master_item:
+            key: dell.ppdm.alerts
+          tags:
+            - tag: component
+              value: alert
+          triggers:
+            - uuid: 27697f62123048faad8315ebf545701e
+              expression: 'length(last(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.informational.active.alerts))<>0'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'nodata(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.informational.active.alerts,1h)=1 or length(last(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.informational.active.alerts))=0'
+              name: 'PPDM: New Active Informational Alerts'
+              priority: INFO
+              description: 'Current informational Alerts on PowerProtect Data Manager'
+              manual_close: 'YES'
+              tags:
+                - tag: scope
+                  value: availability
+        - uuid: 17c3a5e384f04c92b02e796cc10f2aae
+          name: 'PPDM: Total Active Alerts'
+          type: DEPENDENT
+          key: dell.ppdm.total.active.alerts
+          delay: '0'
+          value_type: TEXT
+          trends: '0'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.full_summary
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          master_item:
+            key: dell.ppdm.alerts
+          tags:
+            - tag: component
+              value: alert
+          triggers:
+            - uuid: 0017d29f67ce45d5b59beedca811e083
+              expression: 'length(last(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.total.active.alerts))<>0'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'nodata(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.total.active.alerts,1h)=1 or length(last(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.total.active.alerts))=0'
+              name: 'PPDM: New Active Alerts'
+              priority: INFO
+              description: 'Current critical Alerts on PowerProtect Data Manager'
+              manual_close: 'YES'
+              dependencies:
+                - name: 'PPDM: New Active Critical Alerts'
+                  expression: 'length(last(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.critical.active.alerts))<>0'
+                  recovery_expression: 'nodata(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.critical.active.alerts,1h)=1 or length(last(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.critical.active.alerts))=0'
+                - name: 'PPDM: New Active Informational Alerts'
+                  expression: 'length(last(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.informational.active.alerts))<>0'
+                  recovery_expression: 'nodata(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.informational.active.alerts,1h)=1 or length(last(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.informational.active.alerts))=0'
+                - name: 'PPDM: New Active Warning Alerts'
+                  expression: 'length(last(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.warning.active.alerts))<>0'
+                  recovery_expression: 'nodata(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.warning.active.alerts,1h)=1 or length(last(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.warning.active.alerts))=0'
+              tags:
+                - tag: scope
+                  value: availability
+        - uuid: fe87d94b62234b4eb9e489618a56a150
+          name: 'PPDM: Warning Active Summary'
+          type: DEPENDENT
+          key: dell.ppdm.warning.active.alerts
+          delay: '0'
+          value_type: TEXT
+          trends: '0'
+          preprocessing:
+            - type: JSONPATH
+              parameters:
+                - $.warning_summary
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          master_item:
+            key: dell.ppdm.alerts
+          tags:
+            - tag: component
+              value: alert
+          triggers:
+            - uuid: 90d701822b544ea3ac5fb65a692c4db7
+              expression: 'length(last(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.warning.active.alerts))<>0'
+              recovery_mode: RECOVERY_EXPRESSION
+              recovery_expression: 'nodata(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.warning.active.alerts,1h)=1 or length(last(/DELL PowerProtect Data Manager by HTTP/dell.ppdm.warning.active.alerts))=0'
+              name: 'PPDM: New Active Warning Alerts'
+              priority: WARNING
+              description: 'Current Warning Alerts on PowerProtect Data Manager'
+              manual_close: 'YES'
+              tags:
+                - tag: scope
+                  value: availability
+        - uuid: 56592e528df7439eb8eea4fdf940c2c6
+          name: 'PPDM: API service is running'
+          type: SIMPLE
+          key: 'net.tcp.service[https,,8443]'
+          history: 1w
+          preprocessing:
+            - type: DISCARD_UNCHANGED_HEARTBEAT
+              parameters:
+                - 1d
+          tags:
+            - tag: component
+              value: network
+          triggers:
+            - uuid: 86afb9a841304fd6a9f5d3dce5a9a79f
+              expression: 'max(/DELL PowerProtect Data Manager by HTTP/net.tcp.service[https,,8443],#3)=0'
+              name: 'API service is down on {HOST.NAME}'
+              priority: AVERAGE
+              manual_close: 'YES'
+              tags:
+                - tag: scope
+                  value: availability
+      tags:
+        - tag: class
+          value: backup
+        - tag: target
+          value: 'data manager'
+        - tag: target
+          value: dell
+        - tag: target
+          value: 'power protect'
+      macros:
+        - macro: '{$API.PASSWORD}'
+        - macro: '{$API.URL}'
+        - macro: '{$API.USERNAME}'
