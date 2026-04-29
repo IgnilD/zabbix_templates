@@ -130,7 +130,7 @@ zabbix_export:
               recovery_expression: 'nodata(/DELL PowerProtect DataDomain by SNMP/dell.dd.current.alert.walk,1h)=1 or length(last(/DELL PowerProtect DataDomain by SNMP/dell.dd.current.alert.walk))=0'
               name: 'DataDomain: Current Alert'
               opdata: 'Current Alerts: {ITEM.LASTVALUE1}'
-              priority: INFO
+              priority: WARNING
               description: 'Current Alerts on PowerProtect DataDomain'
               manual_close: 'YES'
               tags:
@@ -2048,6 +2048,9 @@ zabbix_export:
         - macro: '{$PSU.STATUS.WARN:"unknown"}'
           value: '99'
           description: 'The warning value of the PSU sensor for trigger expression.'
+        - macro: '{$SNMP.TIMEOUT}'
+          value: 5m
+          description: 'The time interval for SNMP agent availability trigger expression.'
         - macro: '{$TEMP.SENSOR.ENCLOSURE.MATCHES}'
           value: '.*'
           description: 'Filter for discovering a temperature sensor by enclosure ID.'
